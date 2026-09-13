@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enterprise AI Employee | Workspace Dashboard</title>
+  <meta name="description" content="Intelligent Enterprise AI Assistant with 23 integrated workspace tools.">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-icon">
+            <i class="fa-solid fa-robot"></i>
+          </div>
+          <div class="brand-text">
+            <h2>Enterprise AI</h2>
+            <span>Employee Assistant</span>
+          </div>
+        </div>
+        <button class="btn-new-chat" id="btn-new-chat" title="Start New Chat Session">
+          <i class="fa-solid fa-plus"></i> New Chat
+        </button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          <span>Active Sessions</span>
+          <span class="badge" id="session-count-badge">0</span>
+        </div>
+        <div class="session-list" id="session-list">
+          <div class="empty-state-sm">Loading sessions...</div>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="btn-tools-drawer" id="btn-open-tools" title="Inspect Available Enterprise Tools">
+          <i class="fa-solid fa-toolbox"></i>
+          <span>Workspace Tools</span>
+          <span class="badge-accent" id="sidebar-tools-badge">23</span>
+        </button>
+        <div class="system-status">
+          <span class="status-dot online"></span>
+          <span id="status-text">System Online</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Area -->
+    <main class="main-content">
+      <!-- Top Navigation Header -->
+      <header class="top-header">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle Sidebar">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <div class="header-info">
+          <h1 class="header-title" id="header-title">Chat Session</h1>
+          <span class="session-id-pill" id="current-session-pill" title="Click to copy Session ID">
+            <i class="fa-solid fa-key"></i> <span id="current-session-id">Initializing...</span>
+          </span>
+        </div>
+
+        <div class="header-actions">
+          <div class="model-badge">
+            <i class="fa-solid fa-bolt"></i>
+            <span>gemini-3.6-flash</span>
+          </div>
+          <button class="btn-icon" id="btn-clear-current" title="Clear History for Current Session">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Chat Feed Container -->
+      <div class="chat-viewport" id="chat-viewport">
+        <!-- Welcome Screen (Shown when chat is empty) -->
+        <div class="welcome-screen" id="welcome-screen">
+          <div class="welcome-hero">
+            <div class="welcome-icon">
+              <i class="fa-solid fa-brain"></i>
+            </div>
+            <h2>Enterprise AI Employee</h2>
+            <p>Your intelligent autonomous assistant equipped with full workspace code, search, and document management capabilities.</p>
+          </div>
+
+          <div class="quick-prompts-grid">
+            <button class="prompt-card" data-prompt="Get full enterprise company information">
+              <div class="prompt-icon"><i class="fa-solid fa-building"></i></div>
+              <div class="prompt-text">
+                <strong>Company Info</strong>
+                <span>View enterprise overview & departments</span>
+              </div>
+            </button>
+
+            <button class="prompt-card" data-prompt="Generate workspace tree directory structure">
+              <div class="prompt-icon"><i class="fa-solid fa-folder-tree"></i></div>
+              <div class="prompt-text">
+                <strong>Workspace Directory</strong>
+                <span>Visual tree of all project files</span>
+              </div>
+            </button>
+
+            <button class="prompt-card" data-prompt="Count all workspace files and summarize project statistics">
+              <div class="prompt-icon"><i class="fa-solid fa-chart-pie"></i></div>
+              <div class="prompt-text">
+                <strong>Workspace Summary</strong>
+                <span>Stats & count of project files</span>
+              </div>
+            </button>
+
+            <button class="prompt-card" data-prompt="List all Python files in the workspace repository">
+              <div class="prompt-icon"><i class="fa-brands fa-python"></i></div>
+              <div class="prompt-text">
+                <strong>List Python Files</strong>
+                <span>Inspect workspace Python source code</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Message List -->
+        <div class="messages-list" id="messages-list"></div>
+
+        <!-- Typing Indicator -->
+        <div class="typing-indicator hidden" id="typing-indicator">
+          <div class="avatar assistant-avatar">
+            <i class="fa-solid fa-robot"></i>
+          </div>
+          <div class="typing-bubble">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="typing-text">Enterprise AI is processing...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Input Composer -->
+      <footer class="composer-container">
+        <!-- Quick Action Chips above composer -->
+        <div class="action-chips" id="action-chips">
+          <button class="chip-btn" data-prompt="Show list of available tools"><i class="fa-solid fa-wrench"></i> Available Tools</button>
+          <button class="chip-btn" data-prompt="Summarize workspace files"><i class="fa-solid fa-file-contract"></i> Workspace Summary</button>
+          <button class="chip-btn" data-prompt="Search text 'fastapi' in workspace"><i class="fa-solid fa-magnifying-glass"></i> Search 'fastapi'</button>
+          <button class="chip-btn" data-prompt="Get file information for app/main.py"><i class="fa-solid fa-circle-info"></i> Info main.py</button>
+        </div>
+
+        <form class="composer-form" id="composer-form">
+          <div class="input-wrapper">
+            <textarea
+              id="message-input"
+              placeholder="Ask Enterprise AI anything or request workspace task execution..."
+              rows="1"
+              required
+            ></textarea>
+            <button type="submit" class="btn-send" id="btn-send" title="Send Message (Enter)">
+              <i class="fa-solid fa-paper-plane"></i>
+            </button>
+          </div>
+          <div class="composer-meta">
+            <span>Press <kbd>Enter</kbd> to send, <kbd>Shift + Enter</kbd> for new line</span>
+            <span class="security-badge"><i class="fa-solid fa-shield-halved"></i> Sensitive files protected</span>
+          </div>
+        </form>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Tools Explorer Modal -->
+  <div class="modal-overlay hidden" id="tools-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-toolbox"></i>
+          <div>
+            <h3>Enterprise AI Tools Registry</h3>
+            <p>23 capability tools available to the Gemini assistant</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btn-close-tools"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="tool-search-input" placeholder="Search tool by name or function...">
+        </div>
+
+        <div class="tools-grid" id="tools-grid">
+          <div class="empty-state">Loading tools registry...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Script -->
+  <script src="/static/app.js"></script>
+</body>
+</html>
