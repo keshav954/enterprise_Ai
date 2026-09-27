@@ -31,3 +31,10 @@ Thumbs.db
 
 # Local databases
 *.db
+
+# Runtime data (chat history should not be committed)
+*.db
+app/memory/memory.db
+
+# Vector store runtime data
+data/chroma/

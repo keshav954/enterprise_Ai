@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     gemini_api_key: str = Field(default="")
-    gemini_model: str = Field(default="gemini-3.6-flash")
+    gemini_model: str = Field(default="gemini-flash-latest")
     max_sessions: int = Field(default=100)
 
     model_config = SettingsConfigDict(
@@ -16,4 +16,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
