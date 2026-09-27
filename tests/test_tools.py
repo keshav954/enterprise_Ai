@@ -24,7 +24,7 @@ def test_sensitive_file_protection():
 
 
 def test_tools_aggregation():
-    assert len(TOOLS) == 23
+    assert len(TOOLS) == 25
     tool_names = [tool.__name__ for tool in TOOLS]
     assert "get_company_info" in tool_names
     assert "list_workspace_files" in tool_names

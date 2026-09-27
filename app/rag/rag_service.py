@@ -14,6 +14,7 @@ from app.rag.document_loader import (
 
 from app.rag.vector_store import (
     search_vector_store,
+    build_vector_index,
 )
 
 
@@ -24,6 +25,22 @@ def search_knowledge_base(query: str):
     """
     Search the company knowledge base using semantic vector search.
     """
+def rebuild_knowledge_base():
+    """
+    Rebuild the knowledge-base vector index from scratch.
+    Call this after adding, editing, or removing files in knowledge_base/.
+    """
+    result = build_vector_index()
+
+    if result.get("status") == "error":
+        return f"Rebuild failed: {result.get('message')}"
+
+    return (
+        "Knowledge base rebuilt successfully. "
+        f"{result['documents']} document(s), "
+        f"{result['chunks']} chunk(s), "
+        f"{result['vector_count']} vector(s) indexed."
+    )
 
     if not query or not query.strip():
         return "Please provide a search query."

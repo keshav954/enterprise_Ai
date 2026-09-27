@@ -23,7 +23,7 @@ COLLECTION_NAME = "enterprise_ai_knowledge"
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
 TOP_K = 5
-
+MAX_DISTANCE = 1.7
 
 @lru_cache(maxsize=1)
 def get_embedding_model():
@@ -184,6 +184,9 @@ def search_vector_store(
         metadatas,
         distances,
     ):
+        if distance > MAX_DISTANCE:
+            continue
+
         output.append(
             {
                 "text": document,
@@ -197,7 +200,6 @@ def search_vector_store(
         )
 
     return output
-
 
 def vector_store_stats():
     """Return vector database statistics."""

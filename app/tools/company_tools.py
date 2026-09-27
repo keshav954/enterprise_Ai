@@ -1,4 +1,4 @@
-from app.rag.rag_service import search_knowledge_base
+from app.rag.rag_service import search_knowledge_base, rebuild_knowledge_base
 
 from app.tools.workspace_tools import (
     WORKSPACE_DIR,
@@ -78,6 +78,7 @@ TOOLS = [
     replace_text_in_file,
     list_python_files,
 
-    # RAG / Knowledge Base
+     # RAG / Knowledge Base
     search_knowledge_base,
+    rebuild_knowledge_base,
 ]

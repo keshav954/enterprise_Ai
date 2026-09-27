@@ -18,8 +18,8 @@ def test_tools_endpoint():
     assert response.status_code == 200
     data = response.json()
     assert "total_tools" in data
-    assert data["total_tools"] == 24
-    assert len(data["tools"]) == 24
+    assert data["total_tools"] == 25
+    assert len(data["tools"]) == 25
 
 
 def test_sessions_endpoint():

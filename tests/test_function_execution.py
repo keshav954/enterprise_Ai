@@ -4,7 +4,7 @@ from app.tools.company_tools import get_company_info, count_workspace_files
 
 
 def test_tool_map_registration():
-    assert len(TOOL_MAP) == 23
+    assert len(TOOL_MAP) == 25
     assert "get_company_info" in TOOL_MAP
     assert "count_workspace_files" in TOOL_MAP
     assert "list_python_files" in TOOL_MAP
