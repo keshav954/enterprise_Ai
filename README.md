@@ -81,6 +81,8 @@ find-and-replace text in a file, list all `.py` files.
 
 **Company info:** static company info lookup.
 
+**Knowledge base (RAG):** semantic search over knowledge_base/ via search_knowledge_base; rebuild the vector index on demand via ebuild_knowledge_base after editing knowledge-base files.
+
 ## Testing
 
 ```bash

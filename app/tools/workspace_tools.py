@@ -176,7 +176,7 @@ def move_workspace_item(source: str, destination: str):
 
         if not source_path.is_relative_to(WORKSPACE_DIR) or not destination_path.is_relative_to(WORKSPACE_DIR):
             return "Access Denied."
-        if source_path.name in SENSITIVE_FILES:
+        if source_path.name in SENSITIVE_FILES or destination_path.name in SENSITIVE_FILES:
             return "Access Denied."
         if not source_path.exists():
             return "Source not found."
@@ -198,7 +198,7 @@ def copy_workspace_item(source: str, destination: str):
 
         if not source_path.is_relative_to(WORKSPACE_DIR) or not destination_path.is_relative_to(WORKSPACE_DIR):
             return "Access Denied."
-        if source_path.name in SENSITIVE_FILES:
+        if source_path.name in SENSITIVE_FILES or destination_path.name in SENSITIVE_FILES:
             return "Access Denied."
         if not source_path.exists():
             return "Source not found."
