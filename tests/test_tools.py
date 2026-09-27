@@ -57,11 +57,16 @@ def test_file_lifecycle():
 
 
 def test_search_and_count():
-    python_files = list_python_files()
-    assert "app/main.py" in python_files or "app\\main.py" in python_files
+    write_workspace_file("sample_test_file.py", "print('hello')")
 
-    summary = workspace_summary()
-    assert "Files:" in summary
+    try:
+        python_files = list_python_files()
+        assert "sample_test_file.py" in python_files
 
-    counts = count_workspace_files()
-    assert counts["files"] > 0
+        summary = workspace_summary()
+        assert "Files:" in summary
+
+        counts = count_workspace_files()
+        assert counts["files"] > 0
+    finally:
+        delete_workspace_file("sample_test_file.py")

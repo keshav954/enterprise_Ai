@@ -2,8 +2,11 @@ from pathlib import Path
 from datetime import datetime
 import shutil
 
-# Project root directory
-WORKSPACE_DIR = Path(__file__).resolve().parent.parent.parent
+# Sandboxed workspace directory (user-facing files only —
+# the AI agent cannot access the app's own source code)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+WORKSPACE_DIR = PROJECT_ROOT / "workspace"
+WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Files that AI is NOT allowed to access
 SENSITIVE_FILES = {
