@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -51,7 +51,10 @@ app.include_router(knowledge_base_router)
 
 
 @app.get("/")
-def home():
+def home(request: Request):
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept:
+        return FileResponse(str(STATIC_DIR / "index.html"))
     return {
         "status": "online",
         "service": "Enterprise AI Employee",
