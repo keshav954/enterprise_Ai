@@ -46,13 +46,22 @@
       </div>
 
       <div class="sidebar-footer">
+        <button class="btn-tools-drawer" id="btn-open-kb" title="Manage RAG Knowledge Base Documents">
+          <i class="fa-solid fa-book-bookmark"></i>
+          <span>Knowledge Base</span>
+          <span class="badge-accent" id="sidebar-kb-badge">RAG</span>
+        </button>
         <button class="btn-tools-drawer" id="btn-open-tools" title="Inspect Available Enterprise Tools">
           <i class="fa-solid fa-toolbox"></i>
           <span>Workspace Tools</span>
           <span class="badge-accent" id="sidebar-tools-badge">25</span>
         </button>
+        <button class="btn-tools-drawer btn-secondary" id="btn-open-settings" title="System Settings & Diagnostics">
+          <i class="fa-solid fa-gear"></i>
+          <span>Settings</span>
+        </button>
         <div class="system-status">
-          <span class="status-dot online"></span>
+          <span class="status-dot online" id="status-dot"></span>
           <span id="status-text">System Online</span>
         </div>
       </div>
@@ -76,8 +85,11 @@
         <div class="header-actions">
           <div class="model-badge">
             <i class="fa-solid fa-bolt"></i>
-            <span>Gemini AI</span>
+            <span id="header-model-name">Gemini AI</span>
           </div>
+          <button class="btn-icon" id="btn-export-chat" title="Export Chat History as Markdown">
+            <i class="fa-solid fa-download"></i>
+          </button>
           <button class="btn-icon" id="btn-clear-current" title="Clear History for Current Session">
             <i class="fa-solid fa-trash-can"></i>
           </button>
@@ -201,6 +213,131 @@
 
         <div class="tools-grid" id="tools-grid">
           <div class="empty-state">Loading tools registry...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Knowledge Base (RAG) Modal -->
+  <div class="modal-overlay hidden" id="kb-modal">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-brain" style="color: #ec4899;"></i>
+          <div>
+            <h3>Enterprise Knowledge Base (RAG)</h3>
+            <p>Vector database index for semantic retrieval of company policies & docs</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btn-close-kb"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Stats Summary Cards -->
+        <div class="kb-stats-grid">
+          <div class="kb-stat-card">
+            <span class="kb-stat-num" id="kb-stat-docs">-</span>
+            <span class="kb-stat-label">Source Documents</span>
+          </div>
+          <div class="kb-stat-card">
+            <span class="kb-stat-num" id="kb-stat-chunks">-</span>
+            <span class="kb-stat-label">Indexed Chunks</span>
+          </div>
+          <div class="kb-stat-card">
+            <span class="kb-stat-num" id="kb-stat-model">MiniLM-L6-v2</span>
+            <span class="kb-stat-label">Embedding Model</span>
+          </div>
+        </div>
+
+        <!-- Upload Document Card -->
+        <div class="kb-section">
+          <h4><i class="fa-solid fa-cloud-arrow-up"></i> Upload Document</h4>
+          <p class="kb-section-desc">Add new policy files (<code>.md</code>, <code>.txt</code>) to automatically index into the knowledge base.</p>
+          
+          <form class="kb-upload-form" id="kb-upload-form">
+            <div class="file-dropzone" id="file-dropzone">
+              <i class="fa-solid fa-file-arrow-up"></i>
+              <span id="dropzone-label">Drag & drop <code>.md</code> or <code>.txt</code> file here, or click to browse</span>
+              <input type="file" id="kb-file-input" accept=".md,.txt" style="display: none;">
+            </div>
+            <button type="submit" class="btn-primary" id="btn-upload-doc" disabled>
+              <i class="fa-solid fa-upload"></i> Upload & Re-Index
+            </button>
+          </form>
+          <div class="kb-status-alert hidden" id="kb-upload-status"></div>
+        </div>
+
+        <!-- Document List & Rebuild Action -->
+        <div class="kb-section">
+          <div class="kb-section-header">
+            <h4><i class="fa-solid fa-files"></i> Indexed Documents</h4>
+            <button class="btn-rebuild" id="btn-rebuild-kb" title="Rebuild Vector Index">
+              <i class="fa-solid fa-arrows-rotate"></i> Rebuild Index
+            </button>
+          </div>
+          <div class="kb-docs-table-wrapper" id="kb-docs-list">
+            <div class="empty-state">Loading knowledge base documents...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings & Diagnostics Modal -->
+  <div class="modal-overlay hidden" id="settings-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-gear" style="color: var(--accent-cyan);"></i>
+          <div>
+            <h3>Settings & System Health</h3>
+            <p>API authentication token and platform diagnostics</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btn-close-settings"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Auth Token Configuration -->
+        <div class="settings-group">
+          <label for="settings-auth-token">
+            <strong>API Authentication Token (Optional)</strong>
+            <span>Set this if your backend deployment has <code>API_AUTH_TOKEN</code> enabled.</span>
+          </label>
+          <div class="input-with-button">
+            <input type="password" id="settings-auth-token" placeholder="Bearer secret token...">
+            <button class="btn-icon" id="btn-toggle-token-visibility" type="button" title="Toggle visibility">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+          <button class="btn-primary" id="btn-save-token" style="margin-top: 10px;">
+            <i class="fa-solid fa-floppy-disk"></i> Save Token
+          </button>
+        </div>
+
+        <hr class="settings-divider">
+
+        <!-- System Diagnostics Grid -->
+        <div class="settings-group">
+          <h4><i class="fa-solid fa-heart-pulse"></i> Diagnostics</h4>
+          <div class="diagnostics-list">
+            <div class="diag-item">
+              <span class="diag-label">Server Status:</span>
+              <span class="diag-value" id="diag-status">Checking...</span>
+            </div>
+            <div class="diag-item">
+              <span class="diag-label">API Version:</span>
+              <span class="diag-value" id="diag-version">-</span>
+            </div>
+            <div class="diag-item">
+              <span class="diag-label">Gemini Model:</span>
+              <span class="diag-value" id="diag-model">-</span>
+            </div>
+            <div class="diag-item">
+              <span class="diag-label">Gemini API Key:</span>
+              <span class="diag-value" id="diag-gemini-key">-</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
