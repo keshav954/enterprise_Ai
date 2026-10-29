@@ -1,0 +1,10 @@
+Product_ID,Product_Name,Category,Units_Sold,Unit_Price,Revenue,Stock_Level,Reorder_Threshold
+P101,Enterprise AI Pro,Software,150,499.00,74850.00,45,20
+P102,Cloud Sync Agent,Software,320,129.00,41280.00,8,25
+P103,Security Sentinel,Hardware,85,899.00,76415.00,12,15
+P104,Edge Gateway X1,Hardware,40,1250.00,50000.00,3,10
+P105,Developer Toolkit,Software,410,79.00,32390.00,120,50
+P106,Data Pipeline Hub,Software,95,349.00,33155.00,6,15
+P107,IoT Sensor Pack,Hardware,520,35.00,18200.00,2,30
+P108,Consulting Hours,Services,65,250.00,16250.00,50,10
+

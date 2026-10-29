@@ -24,12 +24,20 @@ def test_sensitive_file_protection():
 
 
 def test_tools_aggregation():
-    assert len(TOOLS) == 25
+    assert len(TOOLS) == 38
     tool_names = [tool.__name__ for tool in TOOLS]
     assert "get_company_info" in tool_names
     assert "list_workspace_files" in tool_names
     assert "search_workspace_files" in tool_names
     assert "list_python_files" in tool_names
+    # New Multidomain Suites:
+    assert "analyze_csv_file" in tool_names
+    assert "calculate_data_summary" in tool_names
+    assert "create_data_chart" in tool_names
+    assert "create_task_plan" in tool_names
+    assert "verify_task_result" in tool_names
+    assert "run_project_tests" in tool_names
+    assert "compare_documents" in tool_names
 
 
 def test_file_lifecycle():

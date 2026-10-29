@@ -45,3 +45,12 @@ def test_search_knowledge_base_empty_query():
     res = search_knowledge_base("")
     assert "Please provide a search query" in res
 
+
+def test_compare_documents():
+    from app.rag.rag_service import compare_documents
+    res = compare_documents("company_handbook.md", "product_restocking_guide.md")
+    assert "Document Comparison" in res
+    assert "company_handbook.md" in res
+    assert "product_restocking_guide.md" in res
+
+
