@@ -140,25 +140,29 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Sidebar Toggle --- //
   function openSidebar() {
     sidebar.classList.add('open');
-    sidebarOverlay.classList.add('active');
+    if (sidebarOverlay) sidebarOverlay.classList.add('active');
   }
 
   function closeSidebar() {
     sidebar.classList.remove('open');
-    sidebarOverlay.classList.remove('active');
+    if (sidebarOverlay) sidebarOverlay.classList.remove('active');
   }
 
   function bindEvents() {
     // Sidebar toggle
-    sidebarToggle.addEventListener('click', () => {
-      if (sidebar.classList.contains('open')) {
-        closeSidebar();
-      } else {
-        openSidebar();
-      }
-    });
+    if (sidebarToggle) {
+      sidebarToggle.addEventListener('click', () => {
+        if (sidebar.classList.contains('open')) {
+          closeSidebar();
+        } else {
+          openSidebar();
+        }
+      });
+    }
 
-    sidebarOverlay.addEventListener('click', closeSidebar);
+    if (sidebarOverlay) {
+      sidebarOverlay.addEventListener('click', closeSidebar);
+    }
 
     // New Chat
     btnNewChat.addEventListener('click', () => {
@@ -404,11 +408,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- File Selection for Knowledge Base --- //
   function handleFileSelected(file) {
-    const validExtensions = ['.md', '.txt'];
+    const validExtensions = ['.md', '.txt', '.pdf', '.docx', '.csv'];
     const hasValidExt = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
 
     if (!hasValidExt) {
-      showKbStatus('Only .md and .txt files are supported.', 'error');
+      showKbStatus('Only .md, .txt, .pdf, .docx, and .csv files are supported.', 'error');
       selectedUploadFile = null;
       btnUploadDoc.disabled = true;
       fileDropzone.classList.remove('has-file');
@@ -998,7 +1002,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       analyticsReportsContainer.innerHTML = `<div class="empty-state" style="color: #ef4444;">Error: ${escapeHtml(e.message)}</div>`;
     }
-  }
   }
 
   // --- Chat Message Sending & Tool Rendering --- //

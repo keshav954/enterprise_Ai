@@ -130,3 +130,4 @@ def diagnose_output(req: DiagnoseRequest):
     """Diagnose raw test runner failure outputs."""
     summary = summarize_test_failures(req.test_output)
     return {"diagnosis": summary}
+

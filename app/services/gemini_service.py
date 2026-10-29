@@ -96,7 +96,25 @@ def send_message(
     memory_service.save_message(session_id, "user", message)
 
     chat = sessions[session_id]
-    response = chat.send_message(message)
+    try:
+        response = chat.send_message(message)
+    except Exception as e:
+        error_msg = str(e)
+        if "RESOURCE_EXHAUSTED" in error_msg or "429" in error_msg:
+            friendly_err = (
+                f"⚠️ **Gemini API Quota Exceeded for `{MODEL_NAME}`**\n\n"
+                "Your Google Gemini API free-tier quota has been exhausted for this model.\n\n"
+                "**How to resolve:**\n"
+                "- Replace `GEMINI_API_KEY` in your `.env` file with a new key from [Google AI Studio](https://aistudio.google.com/).\n"
+                "- Or switch to an available model in `.env` (e.g. `GEMINI_MODEL=gemini-2.5-flash-lite`).\n"
+                "- Then restart the application."
+            )
+            return {
+                "session_id": session_id,
+                "reply": friendly_err,
+                "tools_executed": [],
+            }
+        raise
 
     tools_executed = []
     loop_count = 0
@@ -125,7 +143,21 @@ def send_message(
             )
 
         if function_responses:
-            response = chat.send_message(function_responses)
+            try:
+                response = chat.send_message(function_responses)
+            except Exception as e:
+                error_msg = str(e)
+                if "RESOURCE_EXHAUSTED" in error_msg or "429" in error_msg:
+                    friendly_err = (
+                        f"⚠️ **Gemini API Quota Exceeded during tool execution**\n\n"
+                        "Rate limit reached on model `" + MODEL_NAME + "`. Please update your API key in `.env`."
+                    )
+                    return {
+                        "session_id": session_id,
+                        "reply": friendly_err,
+                        "tools_executed": tools_executed,
+                    }
+                raise
         else:
             break
 
