@@ -1,26 +1,27 @@
 /* Custom Dark Glassmorphism CSS Design System */
 
 :root {
-  --bg-dark: #090d16;
-  --bg-sidebar: #0f172a;
-  --bg-card: #1e293b;
-  --bg-card-hover: #334155;
-  --bg-input: #1e293b;
+  --bg-dark: #080b0f;
+  --bg-sidebar: #0c1015;
+  --bg-card: #131a22;
+  --bg-card-hover: #1b2430;
+  --bg-input: #0f141a;
   --border-color: rgba(255, 255, 255, 0.08);
-  --border-focus: #6366f1;
+  --border-focus: #10b981;
 
-  --accent-primary: #6366f1;
-  --accent-secondary: #8b5cf6;
-  --accent-cyan: #06b6d4;
-  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  --accent-glow: rgba(99, 102, 241, 0.25);
+  --accent-primary: #10b981;
+  --accent-secondary: #06b6d4;
+  --accent-amber: #f59e0b;
+  --accent-cyan: #00f2a9;
+  --accent-gradient: linear-gradient(135deg, #10b981 0%, #0d9488 50%, #06b6d4 100%);
+  --accent-glow: rgba(16, 185, 129, 0.3);
 
-  --text-main: #f8fafc;
+  --text-main: #f1f5f9;
   --text-muted: #94a3b8;
   --text-dim: #64748b;
 
-  --user-msg-bg: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-  --assistant-msg-bg: rgba(30, 41, 59, 0.85);
+  --user-msg-bg: linear-gradient(135deg, #059669 0%, #047857 50%, #0d9488 100%);
+  --assistant-msg-bg: rgba(19, 26, 35, 0.88);
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -54,8 +55,8 @@ body {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
-              radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
+  background: radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.09) 0%, transparent 45%),
+              radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 40%);
 }
 
 /* Sidebar Styles */
@@ -192,7 +193,7 @@ body {
 
 .session-item.active {
   background-color: var(--bg-card);
-  border-color: rgba(99, 102, 241, 0.4);
+  border-color: rgba(16, 185, 129, 0.45); border-left: 3px solid #10b981;
   color: #ffffff;
   font-weight: 500;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -252,7 +253,7 @@ body {
 
 .btn-tools-drawer:hover {
   background-color: var(--bg-card-hover);
-  border-color: rgba(99, 102, 241, 0.3);
+  border-color: rgba(16, 185, 129, 0.35);
 }
 
 .badge-accent {
@@ -339,7 +340,7 @@ body {
 }
 
 .session-id-pill:hover {
-  background-color: rgba(99, 102, 241, 0.15);
+  background-color: rgba(16, 185, 129, 0.15);
   color: var(--text-main);
 }
 
@@ -353,9 +354,9 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  color: #a5b4fc;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
   padding: 5px 12px;
   border-radius: 20px;
   font-size: 0.78rem;
@@ -457,7 +458,7 @@ body {
 
 .prompt-card:hover {
   background: var(--bg-card);
-  border-color: rgba(99, 102, 241, 0.4);
+  border-color: rgba(16, 185, 129, 0.45);
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
@@ -466,7 +467,7 @@ body {
   width: 36px;
   height: 36px;
   border-radius: var(--radius-sm);
-  background: rgba(99, 102, 241, 0.15);
+  background: rgba(16, 185, 129, 0.15);
   color: #818cf8;
   display: flex;
   align-items: center;
@@ -523,7 +524,7 @@ body {
 }
 
 .user-avatar {
-  background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #0d9488 0%, #06b6d4 100%);
   color: #ffffff;
 }
 
@@ -687,7 +688,7 @@ body {
 .chip-btn:hover {
   background: var(--bg-card-hover);
   color: var(--text-main);
-  border-color: rgba(99, 102, 241, 0.4);
+  border-color: rgba(16, 185, 129, 0.45);
 }
 
 .composer-form {
@@ -708,7 +709,7 @@ body {
 
 .input-wrapper:focus-within {
   border-color: var(--border-focus);
-  box-shadow: 0 0 16px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.28);
 }
 
 .input-wrapper textarea {
@@ -881,7 +882,7 @@ kbd {
 }
 
 .tool-card:hover {
-  border-color: rgba(99, 102, 241, 0.4);
+  border-color: rgba(16, 185, 129, 0.45);
   transform: translateY(-2px);
 }
 
@@ -927,8 +928,8 @@ kbd {
   width: 100%;
   margin: 0 auto;
   padding: 8px 14px;
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
   border-radius: var(--radius-sm);
   font-size: 0.78rem;
   color: var(--text-muted);
@@ -1154,7 +1155,7 @@ input:focus-visible {
   font-family: var(--font-heading);
   font-size: 1.6rem;
   font-weight: 700;
-  color: #ec4899;
+  color: #10b981;
 }
 
 .kb-stat-label {
@@ -1212,7 +1213,7 @@ input:focus-visible {
 .file-dropzone:hover,
 .file-dropzone.drag-over {
   border-color: var(--accent-primary);
-  background: rgba(99, 102, 241, 0.08);
+  background: rgba(16, 185, 129, 0.08);
 }
 
 .file-dropzone i {
@@ -1268,9 +1269,9 @@ input:focus-visible {
 
 .btn-rebuild {
   padding: 8px 14px;
-  background: rgba(236, 72, 153, 0.15);
-  border: 1px solid rgba(236, 72, 153, 0.4);
-  color: #f472b6;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
   border-radius: var(--radius-sm);
   font-size: 0.8rem;
   font-weight: 600;
@@ -1282,7 +1283,7 @@ input:focus-visible {
 }
 
 .btn-rebuild:hover {
-  background: rgba(236, 72, 153, 0.25);
+  background: rgba(16, 185, 129, 0.25);
   color: #ffffff;
 }
 
@@ -1485,8 +1486,8 @@ input:focus-visible {
 /* Tools Execution Accordion in Chat */
 .tools-accordion {
   margin: 8px 0;
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.08);
   border-radius: var(--radius-sm);
   overflow: hidden;
   font-size: 0.82rem;
@@ -1500,17 +1501,17 @@ input:focus-visible {
   cursor: pointer;
   user-select: none;
   font-weight: 500;
-  color: #a5b4fc;
+  color: #6ee7b7;
 }
 
 .tools-accordion-summary:hover {
-  background: rgba(99, 102, 241, 0.12);
+  background: rgba(16, 185, 129, 0.14);
 }
 
 .tools-accordion-content {
   padding: 10px 12px;
   background: rgba(15, 23, 42, 0.7);
-  border-top: 1px solid rgba(99, 102, 241, 0.2);
+  border-top: 1px solid rgba(16, 185, 129, 0.2);
   display: none;
 }
 
@@ -1531,7 +1532,7 @@ input:focus-visible {
 }
 
 .tool-detail-title {
-  color: #c7d2fe;
+  color: #a7f3d0;
   font-weight: 600;
   margin-bottom: 4px;
 }

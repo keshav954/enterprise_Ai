@@ -545,8 +545,8 @@ document.addEventListener('DOMContentLoaded', () => {
       'Company': '#06b6d4',
       'Workspace': '#10b981',
       'Search': '#f59e0b',
-      'Code': '#8b5cf6',
-      'Knowledge Base': '#ec4899',
+      'Code': '#38bdf8',
+      'Knowledge Base': '#10b981',
     };
 
     tools.forEach(tool => {
