@@ -266,6 +266,18 @@ body {
   font-weight: 700;
 }
 
+.badge-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.badge-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
 .system-status {
   display: flex;
   align-items: center;
@@ -468,7 +480,7 @@ body {
   height: 36px;
   border-radius: var(--radius-sm);
   background: rgba(16, 185, 129, 0.15);
-  color: #818cf8;
+  color: #34d399;
   display: flex;
   align-items: center;
   justify-content: center;

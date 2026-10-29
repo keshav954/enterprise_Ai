@@ -10,6 +10,8 @@ from fastapi.responses import FileResponse
 
 from app.routes.chat import router as chat_router
 from app.routes.knowledge_base import router as knowledge_base_router
+from app.routes.analytics import router as analytics_router
+from app.routes.workflows import router as workflows_router
 from app.tools.company_tools import TOOLS
 
 logger = logging.getLogger(__name__)
@@ -30,7 +32,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Enterprise AI Employee API",
-    version="0.4.0",
+    version="0.5.0",
     lifespan=lifespan,
 )
 
@@ -48,6 +50,8 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 app.include_router(chat_router)
 app.include_router(knowledge_base_router)
+app.include_router(analytics_router)
+app.include_router(workflows_router)
 
 
 @app.get("/")
@@ -61,6 +65,9 @@ def home(request: Request):
         "version": app.version,
         "dashboard": "/dashboard",
         "knowledge_base": "/knowledge-base/stats",
+        "analytics": "/analytics/reports",
+        "workflows": "/workflows/tasks",
+        "total_tools": len(TOOLS),
         "available_tools": [tool.__name__ for tool in TOOLS],
     }
 

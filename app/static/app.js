@@ -53,6 +53,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const dropzoneLabel = document.getElementById('dropzone-label');
   const kbUploadStatus = document.getElementById('kb-upload-status');
 
+  // DOM Elements - Workflows Modal
+  const workflowsModal = document.getElementById('workflows-modal');
+  const btnOpenWorkflows = document.getElementById('btn-open-workflows');
+  const btnCloseWorkflows = document.getElementById('btn-close-workflows');
+  const btnRefreshWorkflows = document.getElementById('btn-refresh-workflows');
+  const workflowsListContainer = document.getElementById('workflows-list-container');
+
+  // DOM Elements - Analytics Modal
+  const analyticsModal = document.getElementById('analytics-modal');
+  const btnOpenAnalytics = document.getElementById('btn-open-analytics');
+  const btnCloseAnalytics = document.getElementById('btn-close-analytics');
+  const btnRefreshAnalytics = document.getElementById('btn-refresh-analytics');
+  const analyticsDatasetsContainer = document.getElementById('analytics-datasets-container');
+  const analyticsReportsContainer = document.getElementById('analytics-reports-container');
+
   // DOM Elements - Settings Modal
   const settingsModal = document.getElementById('settings-modal');
   const btnOpenSettings = document.getElementById('btn-open-settings');
@@ -264,6 +279,36 @@ document.addEventListener('DOMContentLoaded', () => {
       btnCloseKb.addEventListener('click', () => kbModal.classList.add('hidden'));
     }
 
+    // Workflows Modal Toggle
+    if (btnOpenWorkflows) {
+      btnOpenWorkflows.addEventListener('click', () => {
+        workflowsModal.classList.remove('hidden');
+        closeSidebar();
+        fetchWorkflows();
+      });
+    }
+    if (btnCloseWorkflows) {
+      btnCloseWorkflows.addEventListener('click', () => workflowsModal.classList.add('hidden'));
+    }
+    if (btnRefreshWorkflows) {
+      btnRefreshWorkflows.addEventListener('click', fetchWorkflows);
+    }
+
+    // Analytics Modal Toggle
+    if (btnOpenAnalytics) {
+      btnOpenAnalytics.addEventListener('click', () => {
+        analyticsModal.classList.remove('hidden');
+        closeSidebar();
+        fetchAnalyticsData();
+      });
+    }
+    if (btnCloseAnalytics) {
+      btnCloseAnalytics.addEventListener('click', () => analyticsModal.classList.add('hidden'));
+    }
+    if (btnRefreshAnalytics) {
+      btnRefreshAnalytics.addEventListener('click', fetchAnalyticsData);
+    }
+
     // Settings Modal Toggle
     if (btnOpenSettings) {
       btnOpenSettings.addEventListener('click', () => {
@@ -278,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Modal background clicks to dismiss
-    [toolsModal, kbModal, settingsModal].forEach(modal => {
+    [toolsModal, kbModal, workflowsModal, analyticsModal, settingsModal].forEach(modal => {
       if (!modal) return;
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
@@ -290,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Escape key to close any active modal
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        [toolsModal, kbModal, settingsModal].forEach(m => m && m.classList.add('hidden'));
+        [toolsModal, kbModal, workflowsModal, analyticsModal, settingsModal].forEach(m => m && m.classList.add('hidden'));
         closeSidebar();
       }
     });
@@ -530,7 +575,9 @@ document.addEventListener('DOMContentLoaded', () => {
       ],
       'Search': ['search_workspace_files', 'search_text_in_workspace', 'search_workspace_text', 'find_workspace_files'],
       'Code': ['read_multiple_workspace_files', 'read_workspace_lines', 'replace_text_in_file', 'list_python_files'],
-      'Knowledge Base': ['search_knowledge_base', 'rebuild_knowledge_base'],
+      'Knowledge Base': ['search_knowledge_base', 'rebuild_knowledge_base', 'compare_documents'],
+      'Data Intelligence': ['analyze_csv_file', 'analyze_excel_file', 'calculate_data_summary', 'create_data_chart', 'generate_analysis_report'],
+      'Workflows & Orchestration': ['create_task_plan', 'get_task_status', 'request_task_approval', 'approve_task_step', 'verify_task_result', 'run_project_tests', 'summarize_test_failures'],
     };
 
     const categoryIcons = {
@@ -539,6 +586,8 @@ document.addEventListener('DOMContentLoaded', () => {
       'Search': 'fa-magnifying-glass',
       'Code': 'fa-code',
       'Knowledge Base': 'fa-brain',
+      'Data Intelligence': 'fa-chart-pie',
+      'Workflows & Orchestration': 'fa-list-check',
     };
 
     const categoryColors = {
@@ -547,6 +596,8 @@ document.addEventListener('DOMContentLoaded', () => {
       'Search': '#f59e0b',
       'Code': '#38bdf8',
       'Knowledge Base': '#10b981',
+      'Data Intelligence': '#34d399',
+      'Workflows & Orchestration': '#06b6d4',
     };
 
     tools.forEach(tool => {
@@ -699,7 +750,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Document uploaded and indexed');
         selectedUploadFile = null;
         fileDropzone.classList.remove('has-file');
-        dropzoneLabel.innerHTML = 'Drag & drop <code>.md</code> or <code>.txt</code> file here, or click to browse';
+        dropzoneLabel.innerHTML = 'Drag & drop <code>.md</code>, <code>.txt</code>, <code>.pdf</code>, <code>.docx</code>, or <code>.csv</code> file here, or click to browse';
         kbFileInput.value = '';
         fetchKbStats();
         fetchKbDocuments();
@@ -762,6 +813,192 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       showToast(`Export failed: ${e.message}`, true);
     }
+  }
+
+  // --- Workflows & Human Approvals --- //
+
+  async function fetchWorkflows() {
+    if (!workflowsListContainer) return;
+    workflowsListContainer.innerHTML = '<div class="empty-state">Loading workflows...</div>';
+
+    try {
+      const res = await fetch('/workflows/tasks', { headers: getAuthHeaders() });
+      if (!res.ok) throw new Error('Could not fetch workflows');
+      const data = await res.json();
+      const tasks = data.tasks || [];
+
+      if (tasks.length === 0) {
+        workflowsListContainer.innerHTML = `
+          <div class="empty-state" style="padding: 24px;">
+            <i class="fa-solid fa-list-check" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 8px;"></i>
+            <p>No active workflow tasks found.</p>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Ask the AI Employee to create a task plan (e.g. "Create a workflow to audit inventory").</span>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '<div class="workflows-list">';
+      tasks.forEach(t => {
+        const statusClass = t.status === 'awaiting_approval' ? 'badge-warning' : (t.status === 'verified' ? 'badge-success' : 'badge-accent');
+        const statusLabel = t.status.replace('_', ' ').toUpperCase();
+        const needsApproval = t.status === 'awaiting_approval';
+
+        html += `
+          <div class="workflow-card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+              <div>
+                <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-cyan);">${escapeHtml(t.task_id)}</span>
+                <h4 style="margin: 4px 0 2px 0; font-size: 0.95rem; color: var(--text-primary);">${escapeHtml(t.goal)}</h4>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">${new Date(t.created_at).toLocaleString()} • ${t.total_steps} steps</span>
+              </div>
+              <span class="${statusClass}" style="padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">${statusLabel}</span>
+            </div>
+            ${needsApproval ? `
+              <div style="display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color);">
+                <button class="btn-primary btn-sm btn-approve-task" data-task-id="${escapeHtml(t.task_id)}" data-approved="true" style="padding: 4px 12px; font-size: 0.8rem; background: var(--accent-primary);">
+                  <i class="fa-solid fa-check"></i> Approve
+                </button>
+                <button class="btn-secondary btn-sm btn-approve-task" data-task-id="${escapeHtml(t.task_id)}" data-approved="false" style="padding: 4px 12px; font-size: 0.8rem; background: rgba(239, 68, 68, 0.2); color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">
+                  <i class="fa-solid fa-xmark"></i> Reject
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      });
+      html += '</div>';
+      workflowsListContainer.innerHTML = html;
+
+      // Bind approve/reject buttons
+      workflowsListContainer.querySelectorAll('.btn-approve-task').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const taskId = e.currentTarget.getAttribute('data-task-id');
+          const approved = e.currentTarget.getAttribute('data-approved') === 'true';
+          await submitWorkflowApproval(taskId, approved);
+        });
+      });
+    } catch (e) {
+      workflowsListContainer.innerHTML = `<div class="empty-state" style="color: #ef4444;">Error loading workflows: ${escapeHtml(e.message)}</div>`;
+    }
+  }
+
+  async function submitWorkflowApproval(taskId, approved) {
+    try {
+      const res = await fetch(`/workflows/tasks/${taskId}/approve`, {
+        method: 'POST',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ approved })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(approved ? 'Approval granted' : 'Approval rejected');
+        fetchWorkflows();
+      } else {
+        showToast(data.detail || 'Approval failed', true);
+      }
+    } catch (e) {
+      showToast(`Error: ${e.message}`, true);
+    }
+  }
+
+  // --- Analytics & Reports --- //
+
+  async function fetchAnalyticsData() {
+    if (!analyticsDatasetsContainer || !analyticsReportsContainer) return;
+    analyticsDatasetsContainer.innerHTML = '<div class="empty-state">Loading datasets...</div>';
+    analyticsReportsContainer.innerHTML = '<div class="empty-state">Loading reports...</div>';
+
+    // 1. Fetch datasets
+    try {
+      const res = await fetch('/analytics/datasets', { headers: getAuthHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        const datasets = data.datasets || [];
+        if (datasets.length === 0) {
+          analyticsDatasetsContainer.innerHTML = '<div class="empty-state">No datasets found in workspace.</div>';
+        } else {
+          let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px;">';
+          datasets.forEach(d => {
+            const sizeKb = (d.size_bytes / 1024).toFixed(1);
+            html += `
+              <div class="kb-doc-card" style="padding: 10px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                  <i class="fa-solid fa-file-csv" style="color: var(--accent-primary);"></i>
+                  <strong style="font-size: 0.85rem; color: var(--text-primary); word-break: break-all;">${escapeHtml(d.filename)}</strong>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+                  <span>${d.type} • ${sizeKb} KB</span>
+                  <button class="btn-link" style="color: var(--accent-cyan); cursor: pointer; background: none; border: none; font-size: 0.75rem;" onclick="document.getElementById('message-input').value = 'Analyze dataset ' + '${escapeHtml(d.filename)}'; document.getElementById('analytics-modal').classList.add('hidden'); document.getElementById('message-input').focus();">
+                    Analyze &rarr;
+                  </button>
+                </div>
+              </div>
+            `;
+          });
+          html += '</div>';
+          analyticsDatasetsContainer.innerHTML = html;
+        }
+      }
+    } catch (e) {
+      analyticsDatasetsContainer.innerHTML = `<div class="empty-state" style="color: #ef4444;">Error: ${escapeHtml(e.message)}</div>`;
+    }
+
+    // 2. Fetch reports & charts
+    try {
+      const res = await fetch('/analytics/reports', { headers: getAuthHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        const reports = data.reports || [];
+        const charts = data.charts || [];
+
+        if (reports.length === 0 && charts.length === 0) {
+          analyticsReportsContainer.innerHTML = '<div class="empty-state">No generated deliverables yet.</div>';
+        } else {
+          let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+          
+          charts.forEach(c => {
+            html += `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <i class="fa-solid fa-chart-column" style="color: #38bdf8;"></i>
+                  <div>
+                    <strong style="font-size: 0.85rem; color: var(--text-primary);">${escapeHtml(c.name)}</strong>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Interactive Plotly Chart • HTML</div>
+                  </div>
+                </div>
+                <a href="${c.url}" target="_blank" class="btn-rebuild" style="text-decoration: none; font-size: 0.8rem; padding: 4px 10px;">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Chart
+                </a>
+              </div>
+            `;
+          });
+
+          reports.forEach(r => {
+            html += `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <i class="fa-solid fa-file-lines" style="color: var(--accent-primary);"></i>
+                  <div>
+                    <strong style="font-size: 0.85rem; color: var(--text-primary);">${escapeHtml(r.name)}</strong>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Executive Report • Markdown</div>
+                  </div>
+                </div>
+                <a href="${r.url}" target="_blank" class="btn-rebuild" style="text-decoration: none; font-size: 0.8rem; padding: 4px 10px;">
+                  <i class="fa-solid fa-eye"></i> View Report
+                </a>
+              </div>
+            `;
+          });
+
+          html += '</div>';
+          analyticsReportsContainer.innerHTML = html;
+        }
+      }
+    } catch (e) {
+      analyticsReportsContainer.innerHTML = `<div class="empty-state" style="color: #ef4444;">Error: ${escapeHtml(e.message)}</div>`;
+    }
+  }
   }
 
   // --- Chat Message Sending & Tool Rendering --- //

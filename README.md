@@ -1,142 +1,194 @@
-# Enterprise AI Employee
+# Enterprise AI Employee: Multidomain Agentic AI Platform
 
-A FastAPI backend that exposes a Gemini-powered "AI employee" chat agent with
-persistent memory and a workspace tool suite (file read/write/search/edit),
-plus a lightweight static dashboard.
+[![CI Pipeline](https://github.com/keshav-sudo/Enterprise-AI-Employee/actions/workflows/ci.yml/badge.svg)](https://github.com/keshav-sudo/Enterprise-AI-Employee/actions/workflows/ci.yml)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com)
+[![Python 3.13](https://img.shields.io/badge/Python-3.13+-3776AB.svg?logo=python)](https://python.org)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker)](https://docker.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 
-## Status
+A production-ready, multidomain agentic AI platform that serves as a general-purpose **AI Employee**. Equipped with **RAG semantic intelligence**, **persistent SQLite memory**, **deterministic data analytics**, and a **human-in-the-loop workflow engine**, it executes knowledge work reliably across business, education, HR, and software engineering domains.
 
-Early-stage, working prototype. Core chat loop, tool execution, and
-persistent memory are functional and covered by tests.
+---
 
-## Architecture
+## 🌟 Core Architecture & Capabilities
 
 ```
-app/
-  main.py              FastAPI app entrypoint, mounts routes + static dashboard
-  config/settings.py   Pydantic settings (reads .env)
-  models/chat_models.py  Request schema (ChatRequest)
-  prompts/system_prompt.py  System prompt for the agent
-  routes/chat.py       API routes: /chat, /tools, /sessions, /chat/{id}/history
-  services/gemini_service.py  Gemini client, session mgmt, tool-call loop
-  memory/memory_service.py    SQLite-backed chat history (memory.db)
-  rag/                  Retrieval-augmented generation: document loading,
-                         vector store, and RAG service (in progress)
-  tools/
-    workspace_tools.py   File/folder CRUD within a sandboxed workspace dir
-    search_tools.py      Keyword / text / filename search across the workspace
-    code_tools.py        Multi-file read, line-range read, find/replace, list .py files
-    company_tools.py     Aggregates all tools into TOOLS list + company info tool
-  static/               Dashboard UI (index.html, app.js, style.css)
-knowledge_base/         Source documents for RAG (e.g. company_handbook.md)
-data/chroma/            Chroma vector store (gitignored, regenerated at runtime)
-tests/                  pytest suite: API, memory, tools, function-execution loop
-scripts/
-  list_models.py               Lists models available to your Gemini API key
-  check_gemini_connection.py   Minimal sanity check that your API key/model work
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       CYBER EMERALD WEB DASHBOARD                           │
+│     Universal Chat  •  Knowledge Base RAG  •  Workflows  •  Reports & Data   │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │
+┌──────────────────────────────────────▼──────────────────────────────────────┐
+│                        AGENTIC ORCHESTRATION LAYER                          │
+│        Plan → Execute → Verify Agentic Pattern with Human Approval Gates    │
+└──────┬───────────────────────┬───────────────────────┬──────────────────────┘
+       │                       │                       │
+┌──────▼──────┐         ┌──────▼──────┐         ┌──────▼──────┐        ┌──────▼──────┐
+│  KNOWLEDGE  │         │  AI DATA    │         │  WORKFLOW   │        │  WORKSPACE  │
+│  BASE (RAG) │         │  ANALYST    │         │  ENGINE     │        │  & CODE     │
+│ • ChromaDB  │         │ • Pandas    │         │ • Approval  │        │ • Files CRUD│
+│ • MiniLM-L6 │         │ • NumPy     │         │ • Safe Test │        │ • Regex/Tree│
+│ • PDF/DOCX/ │         │ • Plotly    │         │   Runner    │        │ • AST/Read  │
+│   CSV/MD/TXT│         │ • HTML/MD   │         │ • Pytest TB │        │ • Sandbox   │
+└─────────────┘         └─────────────┘         └─────────────┘        └─────────────┘
 ```
 
-## Setup & Quickstart
+### 1. Universal Document Intelligence (RAG)
+- **Multi-Format Ingestion:** Ingests `.md`, `.txt`, `.pdf` (page-by-page via `pypdf`), `.docx` (via `python-docx`), and `.csv` (tabular data).
+- **Grounded Semantic Retrieval:** Embeds chunks via `SentenceTransformers (all-MiniLM-L6-v2)` and indexes into **ChromaDB**.
+- **Audit-Ready Citations:** Every retrieved fact returns explicit source references, page numbers, and similarity confidence scores. Hallucination guardrail states *"not documented"* when evidence is lacking.
+- **Document Comparison:** Built-in `compare_documents` tool detects discrepancies and overlaps between policies.
 
-```bash
-pip install -r requirements.txt
-cp .env.example .env
-# edit .env and set GEMINI_API_KEY
+### 2. AI Data Analyst (Deterministic Computation)
+- **Zero Hallucination Arithmetic:** Strict segregation between reasoning and calculation. All sums, averages, medians, and aggregations are computed deterministically via **Pandas** and **NumPy**—never LLM mental arithmetic.
+- **Automated Profiling:** Generates column health, missing value counts, unique distributions, and statistical summaries for CSV and Excel files.
+- **Interactive Visualizations:** Renders standalone interactive charts using **Plotly** (HTML/JS) saved to `reports/charts/`.
+- **Executive Reports:** Generates decision-ready Markdown reports saved to `reports/`.
 
-# Start the application:
-python run.py
-# Or with auto-reload for local development:
-python run.py --reload
-```
+### 3. Agentic Workflow Engine & Human Approval Gates
+- **Plan → Execute → Verify:** Decomposes complex user goals into tracked steps with explicit status tracking (`pending`, `in_progress`, `awaiting_approval`, `verified`, `rejected`).
+- **Human-in-the-Loop Safeguards:** Consequential actions (file overwrites, database mutations, purchase orders) trigger approval pauses until explicitly granted by a human reviewer.
+- **Developer Execution Tools:** Restricted subprocess test runner (`run_project_tests`) and intelligent failure diagnosis (`summarize_test_failures`).
 
-Visit `http://localhost:8000/` for API status, or
-`http://localhost:8000/dashboard` for the UI.
+### 4. Enterprise Security & Session Memory
+- **Dual Token Auth:** Protects API endpoints via `Authorization: Bearer <token>` or `X-API-Key: <token>`.
+- **Sliding-Window Rate Limiter:** Per-IP sliding-window rate limiting prevents API abuse and quota exhaustion.
+- **Path Traversal Sandboxing:** All file access is bounded to the `workspace/` and `knowledge_base/` roots; system directories and sensitive files (`.env`, `memory.db`, credentials) are strictly protected.
+- **Persistent SQLite Memory:** Long-term conversation sessions stored in SQLite with full rollback, deletion, and export capabilities.
 
-To verify your API key and see which models are available to it:
+---
 
-```bash
-python scripts/check_gemini_connection.py
-python scripts/list_models.py
-```
+## 🛠️ Complete 38-Tool Registry
 
-## API
-
-| Method | Path | Description |
+| Suite | Count | Tools |
 |---|---|---|
-| GET | `/` | Service status + registered tool names |
-| GET | `/health` | Health-check endpoint for load-balancers & containers |
-| GET | `/dashboard` | Static dashboard UI |
-| POST | `/chat` | Send a message (`message`, optional `session_id`) |
-| GET | `/tools` | List registered tools + descriptions |
-| GET | `/sessions` | List active + stored session IDs |
-| GET | `/chat/{session_id}/history` | Full history for a session |
-| DELETE | `/chat/{session_id}` | Clear a session's history |
-| GET | `/knowledge-base/stats` | Document and chunk counts for RAG |
-| GET | `/knowledge-base/documents` | List stored knowledge base documents |
-| POST | `/knowledge-base/rebuild` | Trigger semantic vector index rebuild |
-| POST | `/knowledge-base/upload` | Upload `.md`/`.txt` document and index it |
+| **Company & Core** | 1 | `get_company_info` |
+| **Workspace File CRUD** | 10 | `list_workspace_files`, `read_workspace_file`, `write_workspace_file`, `append_workspace_file`, `delete_workspace_file`, `create_workspace_folder`, `delete_workspace_folder`, `rename_workspace_item`, `move_workspace_item`, `copy_workspace_item` |
+| **Workspace Inspection** | 4 | `workspace_tree`, `workspace_summary`, `get_file_information`, `count_workspace_files` |
+| **Search & Discovery** | 4 | `search_workspace_files`, `search_text_in_workspace`, `search_workspace_text`, `find_workspace_files` |
+| **Code Intelligence** | 4 | `read_multiple_workspace_files`, `read_workspace_lines`, `replace_text_in_file`, `list_python_files` |
+| **Knowledge Base (RAG)** | 3 | `search_knowledge_base`, `rebuild_knowledge_base`, `compare_documents` |
+| **AI Data Analyst** | 5 | `analyze_csv_file`, `analyze_excel_file`, `calculate_data_summary`, `create_data_chart`, `generate_analysis_report` |
+| **Workflow & Verification** | 7 | `create_task_plan`, `get_task_status`, `request_task_approval`, `approve_task_step`, `verify_task_result`, `run_project_tests`, `summarize_test_failures` |
 
-## Authentication & Rate Limiting
+---
 
-- **API Token Security:** Set `API_AUTH_TOKEN=your_secret_token` in `.env` to protect `/chat`, deletion, and knowledge-base management endpoints. Clients authenticate with either:
-  - Header: `Authorization: Bearer your_secret_token`
-  - Header: `X-API-Key: your_secret_token`
-  Leave `API_AUTH_TOKEN` empty in development for open access.
-- **Rate Limiting:** Protects the AI endpoint against quota exhaustion (`RATE_LIMIT_PER_MINUTE=60` by default). Returns HTTP `429 Too Many Requests` when exceeded.
+## 🚀 Quickstart & Setup
 
-## Tools available to the agent
+### Prerequisites
+- Python 3.11+ (Python 3.13 recommended)
+- Google Gemini API Key ([Google AI Studio](https://aistudio.google.com/))
 
-**Workspace file ops:** list, read, write, append, delete files; create/delete
-folders; rename, move, copy items; workspace tree/summary; file info; file
-count.
-
-**Search:** search filenames by keyword, search text content across the
-workspace, find files by glob pattern.
-
-**Code-oriented:** read multiple files at once, read a specific line range,
-find-and-replace text in a file, list all `.py` files.
-
-**Company info:** static company info lookup.
-
-**Knowledge base (RAG):** semantic search over knowledge_base/ via `search_knowledge_base`; rebuild the vector index on demand via `rebuild_knowledge_base` after editing knowledge-base files.
-
-## Deployment
-
-### 1. Docker Compose (Recommended for Local / VPS)
+### 1. Local Installation
 
 ```bash
-docker compose up --build
-```
-This runs the containerized service with volume mounts preserving `workspace/`, `data/`, `knowledge_base/`, and `reports/`.
+# Clone the repository
+git clone https://github.com/keshav-sudo/Enterprise-AI-Employee.git
+cd Enterprise-AI-Employee
 
-### 2. Docker Standalone
+# Install dependencies
+pip install -r requirements.txt
 
-```bash
-docker build -t enterprise-ai-employee .
-docker run -p 8000:8000 --env-file .env enterprise-ai-employee
+# Configure environment variables
+cp .env.example .env
+# Open .env and set GEMINI_API_KEY=your_key_here
 ```
 
-### 3. Cloud Platforms (Render, Railway, Heroku)
-
-- **Render**: Connect the repository and Render detects [`render.yaml`](file:///c:/Users/kesha/OneDrive/Desktop/VS%20CODE/Enterprise-AI-Employee/render.yaml) automatically to deploy as a Web Service.
-- **Railway / Heroku / Dokku**: Deploys via [`Procfile`](file:///c:/Users/kesha/OneDrive/Desktop/VS%20CODE/Enterprise-AI-Employee/Procfile) and [`Dockerfile`](file:///c:/Users/kesha/OneDrive/Desktop/VS%20CODE/Enterprise-AI-Employee/Dockerfile) with Gunicorn and Uvicorn workers.
-
-### 4. Continuous Integration
-
-Automated CI is configured via GitHub Actions in [`.github/workflows/ci.yml`](file:///c:/Users/kesha/OneDrive/Desktop/VS%20CODE/Enterprise-AI-Employee/.github/workflows/ci.yml) to run test suites and verify container builds on pull requests and pushes to `main`.
-
-## Testing
+### 2. Run the Application
 
 ```bash
+# Launch unified CLI entrypoint
+python run.py
+
+# Or with auto-reload for local development:
+python run.py --reload --port 8000
+```
+
+Open your browser to:
+- **Web Dashboard:** `http://localhost:8000/` or `http://localhost:8000/dashboard`
+- **Interactive OpenAPI Docs:** `http://localhost:8000/docs`
+- **Health Diagnostics:** `http://localhost:8000/health`
+
+---
+
+## 📡 REST API Reference
+
+### Universal Chat
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/chat` | Send prompt to AI Employee (`message`, optional `session_id`) |
+| `GET` | `/chat/{session_id}/history` | Retrieve full message thread for session |
+| `DELETE` | `/chat/{session_id}` | Clear and reset a chat session |
+| `GET` | `/sessions` | List all active and stored session IDs |
+| `GET` | `/tools` | List all 38 registered tools and schema descriptions |
+
+### Knowledge Base & RAG Management
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/knowledge-base/stats` | Document, chunk, and embedding model statistics |
+| `GET` | `/knowledge-base/documents` | List stored files with size and modification date |
+| `POST` | `/knowledge-base/upload` | Upload `.md`, `.txt`, `.pdf`, `.docx`, or `.csv` and trigger auto-index |
+| `POST` | `/knowledge-base/rebuild` | Force semantic vector store rebuild |
+
+### Analytics & Data Intelligence
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/analytics/datasets` | List `.csv`, `.xlsx` datasets in workspace |
+| `POST` | `/analytics/analyze` | Exploratory data profiling on dataset |
+| `POST` | `/analytics/calculate` | Deterministic Pandas group-by calculation |
+| `GET` | `/analytics/reports` | List generated reports and Plotly charts |
+| `GET` | `/analytics/reports/{file}` | Download or view Markdown executive report |
+| `GET` | `/analytics/charts/{file}` | Serve interactive Plotly HTML chart |
+
+### Workflows & Agentic Orchestration
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/workflows/plan` | Decompose goal into steps with approval gates |
+| `GET` | `/workflows/tasks` | List all active workflows and statuses |
+| `GET` | `/workflows/tasks/{id}` | Live workflow execution logs and step breakdown |
+| `POST` | `/workflows/tasks/{id}/approve` | Submit human approval decision (`approved: true/false`) |
+| `POST` | `/workflows/tasks/{id}/verify` | Verify task deliverables against criteria |
+| `POST` | `/workflows/run-tests` | Run pytest test runner in restricted subprocess |
+| `POST` | `/workflows/diagnose-failures` | Analyze pytest failure stack traces |
+
+---
+
+## 🐳 Production Deployment
+
+### 1. Docker Compose (Recommended)
+
+```bash
+docker compose up --build -d
+```
+Docker Compose configures volume mounts for `workspace/`, `data/`, `knowledge_base/`, and `reports/` to preserve data across container restarts.
+
+### 2. Standalone Docker Container
+
+```bash
+docker build -t enterprise-ai-employee:latest .
+docker run -p 8000:8000 --env-file .env enterprise-ai-employee:latest
+```
+
+### 3. Cloud Deployment (Render / Railway / Heroku)
+- **Render:** Connect the repo. Render reads [`render.yaml`](file:///c:/Users/kesha/OneDrive/Desktop/VS%20CODE/Enterprise-AI-Employee/render.yaml) automatically to provision the Web Service with healthchecks.
+- **Railway / Heroku:** Deploys via [`Procfile`](file:///c:/Users/kesha/OneDrive/Desktop/VS%20CODE/Enterprise-AI-Employee/Procfile) with Gunicorn and Uvicorn workers.
+
+---
+
+## 🧪 Testing & Verification
+
+The project includes 52 automated tests covering REST API endpoints, RAG semantic retrieval, deterministic analytics, workflow lifecycles, and security guards:
+
+```bash
+# Run the complete test suite
+pytest tests/ -v
+
+# Run with concise summary
 pytest tests/ -q
 ```
 
-## Notes / known limitations
+---
 
-- Chat sessions are kept in an in-memory dict capped by `MAX_SESSIONS`
-  (default 100); the oldest session is evicted first. Restarting the server
-  loses in-memory (but not SQLite-persisted) session state.
-- `app/memory/memory.db` and `data/chroma/` are local runtime data and are
-  gitignored — don't commit them.
-- The tool loop caps at 5 automatic tool-call iterations per turn
-  (`MAX_TOOL_LOOPS` in `gemini_service.py`).
+## 📄 License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

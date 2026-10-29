@@ -52,7 +52,7 @@ def trigger_rebuild():
 @router.post("/upload", dependencies=[Depends(verify_api_token)])
 async def upload_document(file: UploadFile = File(...)):
     """
-    Upload a new .md or .txt document to the knowledge base and trigger index rebuild.
+    Upload a new document (.md, .txt, .pdf, .docx, .csv) to the knowledge base and trigger index rebuild.
     Requires valid API token if security is enabled.
     """
     if not file.filename:
@@ -78,12 +78,7 @@ async def upload_document(file: UploadFile = File(...)):
             detail=f"File exceeds maximum allowed size of {MAX_UPLOAD_BYTES // (1024 * 1024)}MB.",
         )
 
-    try:
-        content_text = content.decode("utf-8")
-    except UnicodeDecodeError:
-        raise HTTPException(status_code=400, detail="File must be valid UTF-8 encoded text.")
-
-    target_path.write_text(content_text, encoding="utf-8")
+    target_path.write_bytes(content)
 
     # Rebuild index to include the new document
     rebuild_res = rebuild_knowledge_base()

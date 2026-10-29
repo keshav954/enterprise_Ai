@@ -3,31 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Enterprise AI Employee | Workspace Dashboard</title>
-  <meta name="description" content="Intelligent Enterprise AI Assistant with 25+ integrated workspace, code, search, and RAG tools.">
-  <!-- Google Fonts -->
+  <title>Enterprise AI Employee — Agentic Workspace</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  
+  <!-- Modern Inter & JetBrains Mono Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
   <!-- FontAwesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Custom CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Markdown & Syntax Highlighting -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  
+  <!-- Custom Styling -->
   <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
-  <div class="app-container">
-    <div class="sidebar-overlay" id="sidebar-overlay"></div>
-
-    <!-- Sidebar Navigation -->
+<body class="theme-dark">
+  <div class="app-layout">
+    <!-- Collapsible Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="brand">
           <div class="brand-icon">
-            <i class="fa-solid fa-robot"></i>
+            <i class="fa-solid fa-microchip"></i>
           </div>
           <div class="brand-text">
             <h2>Enterprise AI</h2>
-            <span>Employee Assistant</span>
+            <span>Multidomain Employee</span>
           </div>
         </div>
         <button class="btn-new-chat" id="btn-new-chat" title="Start New Chat Session">
@@ -51,10 +57,19 @@
           <span>Knowledge Base</span>
           <span class="badge-accent" id="sidebar-kb-badge">RAG</span>
         </button>
+        <button class="btn-tools-drawer" id="btn-open-workflows" title="Agentic Task Plans & Human Approvals">
+          <i class="fa-solid fa-list-check"></i>
+          <span>Workflows</span>
+          <span class="badge-accent" id="sidebar-workflows-badge">Active</span>
+        </button>
+        <button class="btn-tools-drawer" id="btn-open-analytics" title="Data Intelligence, Reports & Charts">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Reports & Data</span>
+        </button>
         <button class="btn-tools-drawer" id="btn-open-tools" title="Inspect Available Enterprise Tools">
           <i class="fa-solid fa-toolbox"></i>
           <span>Workspace Tools</span>
-          <span class="badge-accent" id="sidebar-tools-badge">25</span>
+          <span class="badge-accent" id="sidebar-tools-badge">38</span>
         </button>
         <button class="btn-tools-drawer btn-secondary" id="btn-open-settings" title="System Settings & Diagnostics">
           <i class="fa-solid fa-gear"></i>
@@ -105,39 +120,39 @@
               <i class="fa-solid fa-brain"></i>
             </div>
             <h2>Enterprise AI Employee</h2>
-            <p>Your intelligent autonomous assistant equipped with full workspace code, search, and document management capabilities.</p>
+            <p>Your multidomain autonomous employee for business analytics, policy intelligence, workflow orchestration, and software verification.</p>
           </div>
 
           <div class="quick-prompts-grid">
-            <button class="prompt-card" data-prompt="Get full enterprise company information">
-              <div class="prompt-icon"><i class="fa-solid fa-building"></i></div>
-              <div class="prompt-text">
-                <strong>Company Info</strong>
-                <span>View enterprise overview & departments</span>
-              </div>
-            </button>
-
-            <button class="prompt-card" data-prompt="Generate workspace tree directory structure">
-              <div class="prompt-icon"><i class="fa-solid fa-folder-tree"></i></div>
-              <div class="prompt-text">
-                <strong>Workspace Directory</strong>
-                <span>Visual tree of all project files</span>
-              </div>
-            </button>
-
-            <button class="prompt-card" data-prompt="Count all workspace files and summarize project statistics">
+            <button class="prompt-card" data-prompt="Analyze monthly_sales.csv and identify which products need restocking with a recommendation report">
               <div class="prompt-icon"><i class="fa-solid fa-chart-pie"></i></div>
               <div class="prompt-text">
-                <strong>Workspace Summary</strong>
-                <span>Stats & count of project files</span>
+                <strong>Business & Sales</strong>
+                <span>Analyze sales, profit margins & restocking</span>
               </div>
             </button>
 
-            <button class="prompt-card" data-prompt="List all Python files in the workspace repository">
-              <div class="prompt-icon"><i class="fa-brands fa-python"></i></div>
+            <button class="prompt-card" data-prompt="Search our product restocking guide and summarize the approval rules for purchase orders">
+              <div class="prompt-icon"><i class="fa-solid fa-book-bookmark"></i></div>
               <div class="prompt-text">
-                <strong>List Python Files</strong>
-                <span>Inspect workspace Python source code</span>
+                <strong>Policy & HR Intelligence</strong>
+                <span>Grounded RAG retrieval with citations</span>
+              </div>
+            </button>
+
+            <button class="prompt-card" data-prompt="Search ai_systems_lecture_notes.md and outline the key differences between ReAct loops and RAG">
+              <div class="prompt-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+              <div class="prompt-text">
+                <strong>Education & Research</strong>
+                <span>Study notes, concept breakdown & quiz</span>
+              </div>
+            </button>
+
+            <button class="prompt-card" data-prompt="Execute project test suite, verify health, and summarize test results">
+              <div class="prompt-icon"><i class="fa-solid fa-code"></i></div>
+              <div class="prompt-text">
+                <strong>Software Engineering</strong>
+                <span>Run test suite, inspect code & diagnose</span>
               </div>
             </button>
           </div>
@@ -164,10 +179,11 @@
       <footer class="composer-container">
         <!-- Quick Action Chips above composer -->
         <div class="action-chips" id="action-chips">
-          <button class="chip-btn" data-prompt="Show list of available tools"><i class="fa-solid fa-wrench"></i> Available Tools</button>
-          <button class="chip-btn" data-prompt="Summarize workspace files"><i class="fa-solid fa-file-contract"></i> Workspace Summary</button>
-          <button class="chip-btn" data-prompt="Search text 'fastapi' in workspace"><i class="fa-solid fa-magnifying-glass"></i> Search 'fastapi'</button>
-          <button class="chip-btn" data-prompt="Get file information for app/main.py"><i class="fa-solid fa-circle-info"></i> Info main.py</button>
+          <button class="chip-btn" data-prompt="Show list of available tools"><i class="fa-solid fa-wrench"></i> 38 Tools</button>
+          <button class="chip-btn" data-prompt="Analyze monthly_sales.csv dataset"><i class="fa-solid fa-table"></i> Analyze Sales Data</button>
+          <button class="chip-btn" data-prompt="Show active workflow tasks and progress"><i class="fa-solid fa-list-check"></i> Active Workflows</button>
+          <button class="chip-btn" data-prompt="Search 'reorder threshold' in knowledge base"><i class="fa-solid fa-magnifying-glass"></i> Search Policy</button>
+          <button class="chip-btn" data-prompt="Run project pytest suite"><i class="fa-solid fa-vial-circle-check"></i> Run Tests</button>
         </div>
 
         <form class="composer-form" id="composer-form">
@@ -199,7 +215,7 @@
           <i class="fa-solid fa-toolbox"></i>
           <div>
             <h3>Enterprise AI Tools Registry</h3>
-            <p>25 capability tools available to the Gemini assistant</p>
+            <p id="tools-modal-subtitle">38 capability tools across 5 domains available to the AI Employee</p>
           </div>
         </div>
         <button class="modal-close" id="btn-close-tools"><i class="fa-solid fa-xmark"></i></button>
@@ -226,7 +242,7 @@
           <i class="fa-solid fa-brain" style="color: #10b981;"></i>
           <div>
             <h3>Enterprise Knowledge Base (RAG)</h3>
-            <p>Vector database index for semantic retrieval of company policies & docs</p>
+            <p>Vector database index for semantic retrieval of company policies & documents</p>
           </div>
         </div>
         <button class="modal-close" id="btn-close-kb"><i class="fa-solid fa-xmark"></i></button>
@@ -252,13 +268,13 @@
         <!-- Upload Document Card -->
         <div class="kb-section">
           <h4><i class="fa-solid fa-cloud-arrow-up"></i> Upload Document</h4>
-          <p class="kb-section-desc">Add new policy files (<code>.md</code>, <code>.txt</code>) to automatically index into the knowledge base.</p>
+          <p class="kb-section-desc">Add new policy files (<code>.md</code>, <code>.txt</code>, <code>.pdf</code>, <code>.docx</code>, <code>.csv</code>) to automatically index into the knowledge base.</p>
           
           <form class="kb-upload-form" id="kb-upload-form">
             <div class="file-dropzone" id="file-dropzone">
               <i class="fa-solid fa-file-arrow-up"></i>
-              <span id="dropzone-label">Drag & drop <code>.md</code> or <code>.txt</code> file here, or click to browse</span>
-              <input type="file" id="kb-file-input" accept=".md,.txt" style="display: none;">
+              <span id="dropzone-label">Drag & drop <code>.md</code>, <code>.txt</code>, <code>.pdf</code>, <code>.docx</code>, or <code>.csv</code> file here, or click to browse</span>
+              <input type="file" id="kb-file-input" accept=".md,.txt,.pdf,.docx,.csv" style="display: none;">
             </div>
             <button type="submit" class="btn-primary" id="btn-upload-doc" disabled>
               <i class="fa-solid fa-upload"></i> Upload & Re-Index
@@ -277,6 +293,75 @@
           </div>
           <div class="kb-docs-table-wrapper" id="kb-docs-list">
             <div class="empty-state">Loading knowledge base documents...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agent Workflows Modal -->
+  <div class="modal-overlay hidden" id="workflows-modal">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-list-check" style="color: var(--accent-primary);"></i>
+          <div>
+            <h3>Agentic Workflows & Approvals</h3>
+            <p>Plan → Execute → Verify orchestration with human authorization gates</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btn-close-workflows"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="kb-section">
+          <div class="kb-section-header">
+            <h4><i class="fa-solid fa-clock-rotate-left"></i> Tracked Workflows</h4>
+            <button class="btn-rebuild" id="btn-refresh-workflows" title="Refresh workflows">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh
+            </button>
+          </div>
+          <div id="workflows-list-container">
+            <div class="empty-state">Loading workflows...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics & Reports Modal -->
+  <div class="modal-overlay hidden" id="analytics-modal">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-chart-line" style="color: var(--accent-cyan);"></i>
+          <div>
+            <h3>Reports & Data Intelligence</h3>
+            <p>Interactive Plotly charts, executive Markdown reports, and datasets</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btn-close-analytics"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Available Datasets -->
+        <div class="kb-section">
+          <h4><i class="fa-solid fa-database"></i> Workspace Datasets</h4>
+          <div id="analytics-datasets-container">
+            <div class="empty-state">Loading datasets...</div>
+          </div>
+        </div>
+
+        <!-- Generated Reports & Charts -->
+        <div class="kb-section">
+          <div class="kb-section-header">
+            <h4><i class="fa-solid fa-file-chart-pie"></i> Generated Deliverables</h4>
+            <button class="btn-rebuild" id="btn-refresh-analytics" title="Refresh Reports">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh
+            </button>
+          </div>
+          <div id="analytics-reports-container">
+            <div class="empty-state">Loading reports and charts...</div>
           </div>
         </div>
       </div>
