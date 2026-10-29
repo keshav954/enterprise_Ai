@@ -70,3 +70,21 @@ def test_search_and_count():
         assert counts["files"] > 0
     finally:
         delete_workspace_file("sample_test_file.py")
+
+
+def test_code_tools_edge_cases():
+    # Empty old_text
+    write_workspace_file("edge_case.txt", "some content")
+    try:
+        res = replace_text_in_file("edge_case.txt", "", "new")
+        assert res == "old_text must not be empty."
+
+        # Directory target checks
+        create_workspace_folder("test_dir")
+        try:
+            assert read_workspace_lines("test_dir", 1, 5) == "Cannot read a directory."
+            assert replace_text_in_file("test_dir", "a", "b") == "Cannot edit a directory."
+        finally:
+            delete_workspace_folder("test_dir")
+    finally:
+        delete_workspace_file("edge_case.txt")

@@ -36,13 +36,17 @@ scripts/
   check_gemini_connection.py   Minimal sanity check that your API key/model work
 ```
 
-## Setup
+## Setup & Quickstart
 
 ```bash
 pip install -r requirements.txt
 cp .env.example .env
 # edit .env and set GEMINI_API_KEY
-uvicorn app.main:app --reload
+
+# Start the application:
+python run.py
+# Or with auto-reload for local development:
+python run.py --reload
 ```
 
 Visit `http://localhost:8000/` for API status, or
@@ -60,6 +64,7 @@ python scripts/list_models.py
 | Method | Path | Description |
 |---|---|---|
 | GET | `/` | Service status + registered tool names |
+| GET | `/health` | Health-check endpoint for load-balancers & containers |
 | GET | `/dashboard` | Static dashboard UI |
 | POST | `/chat` | Send a message (`message`, optional `session_id`) |
 | GET | `/tools` | List registered tools + descriptions |
@@ -81,7 +86,32 @@ find-and-replace text in a file, list all `.py` files.
 
 **Company info:** static company info lookup.
 
-**Knowledge base (RAG):** semantic search over knowledge_base/ via search_knowledge_base; rebuild the vector index on demand via ebuild_knowledge_base after editing knowledge-base files.
+**Knowledge base (RAG):** semantic search over knowledge_base/ via `search_knowledge_base`; rebuild the vector index on demand via `rebuild_knowledge_base` after editing knowledge-base files.
+
+## Deployment
+
+### 1. Docker Compose (Recommended for Local / VPS)
+
+```bash
+docker compose up --build
+```
+This runs the containerized service with volume mounts preserving `workspace/`, `data/`, `knowledge_base/`, and `reports/`.
+
+### 2. Docker Standalone
+
+```bash
+docker build -t enterprise-ai-employee .
+docker run -p 8000:8000 --env-file .env enterprise-ai-employee
+```
+
+### 3. Cloud Platforms (Render, Railway, Heroku)
+
+- **Render**: Connect the repository and Render detects [`render.yaml`](file:///c:/Users/kesha/OneDrive/Desktop/VS%20CODE/Enterprise-AI-Employee/render.yaml) automatically to deploy as a Web Service.
+- **Railway / Heroku / Dokku**: Deploys via [`Procfile`](file:///c:/Users/kesha/OneDrive/Desktop/VS%20CODE/Enterprise-AI-Employee/Procfile) and [`Dockerfile`](file:///c:/Users/kesha/OneDrive/Desktop/VS%20CODE/Enterprise-AI-Employee/Dockerfile) with Gunicorn and Uvicorn workers.
+
+### 4. Continuous Integration
+
+Automated CI is configured via GitHub Actions in [`.github/workflows/ci.yml`](file:///c:/Users/kesha/OneDrive/Desktop/VS%20CODE/Enterprise-AI-Employee/.github/workflows/ci.yml) to run test suites and verify container builds on pull requests and pushes to `main`.
 
 ## Testing
 

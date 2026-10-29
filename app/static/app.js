@@ -11,6 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnNewChat = document.getElementById('btn-new-chat');
   const btnClearCurrent = document.getElementById('btn-clear-current');
   
+  const sidebar = document.getElementById('sidebar');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+  const sidebarToggle = document.getElementById('sidebar-toggle');
+
   const chatViewport = document.getElementById('chat-viewport');
   const welcomeScreen = document.getElementById('welcome-screen');
   const messagesList = document.getElementById('messages-list');
@@ -29,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // State variables
   let currentSessionId = getOrGenerateSessionId();
   let availableTools = [];
+  let isSending = false;
 
   // Initialize
   init();
@@ -50,13 +55,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // --- Sidebar Toggle ---
+  function openSidebar() {
+    sidebar.classList.add('open');
+    sidebarOverlay.classList.add('active');
+  }
+
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    sidebarOverlay.classList.remove('active');
+  }
+
   function bindEvents() {
+    // Sidebar toggle
+    sidebarToggle.addEventListener('click', () => {
+      if (sidebar.classList.contains('open')) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    });
+
+    sidebarOverlay.addEventListener('click', closeSidebar);
+
     // New Chat
     btnNewChat.addEventListener('click', () => {
       currentSessionId = getOrGenerateSessionId();
       updateSessionIdDisplay();
       clearChatViewport();
       fetchSessions();
+      closeSidebar();
     });
 
     // Clear Session
@@ -74,8 +102,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Copy Session ID
     currentSessionPill.addEventListener('click', () => {
-      navigator.clipboard.writeText(currentSessionId);
-      alert('Copied Session ID to clipboard!');
+      navigator.clipboard.writeText(currentSessionId).then(() => {
+        const pill = currentSessionPill;
+        pill.style.borderColor = '#10b981';
+        setTimeout(() => { pill.style.borderColor = ''; }, 1200);
+      });
     });
 
     // Composer Form Submit
@@ -112,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tools Modal Toggle
     btnOpenTools.addEventListener('click', () => {
       toolsModal.classList.remove('hidden');
+      closeSidebar();
     });
 
     btnCloseTools.addEventListener('click', () => {
@@ -121,6 +153,14 @@ document.addEventListener('DOMContentLoaded', () => {
     toolsModal.addEventListener('click', (e) => {
       if (e.target === toolsModal) {
         toolsModal.classList.add('hidden');
+      }
+    });
+
+    // Escape key to close modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        toolsModal.classList.add('hidden');
+        closeSidebar();
       }
     });
 
@@ -185,6 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateSessionIdDisplay();
         loadSessionHistory(id);
         fetchSessions();
+        closeSidebar();
       });
 
       sessionListEl.appendChild(item);
@@ -231,11 +272,51 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Categorize tools
+    const categories = {
+      'Company': ['get_company_info'],
+      'Workspace': ['list_workspace_files', 'read_workspace_file', 'write_workspace_file', 'append_workspace_file', 'delete_workspace_file', 'create_workspace_folder', 'delete_workspace_folder', 'rename_workspace_item', 'move_workspace_item', 'copy_workspace_item', 'workspace_tree', 'workspace_summary', 'get_file_information', 'count_workspace_files'],
+      'Search': ['search_workspace_files', 'search_text_in_workspace', 'search_workspace_text', 'find_workspace_files'],
+      'Code': ['read_multiple_workspace_files', 'read_workspace_lines', 'replace_text_in_file', 'list_python_files'],
+      'Knowledge Base': ['search_knowledge_base', 'rebuild_knowledge_base'],
+    };
+
+    const categoryIcons = {
+      'Company': 'fa-building',
+      'Workspace': 'fa-folder-open',
+      'Search': 'fa-magnifying-glass',
+      'Code': 'fa-code',
+      'Knowledge Base': 'fa-brain',
+    };
+
+    const categoryColors = {
+      'Company': '#06b6d4',
+      'Workspace': '#10b981',
+      'Search': '#f59e0b',
+      'Code': '#8b5cf6',
+      'Knowledge Base': '#ec4899',
+    };
+
     tools.forEach(tool => {
+      let toolCategory = 'Other';
+      for (const [cat, names] of Object.entries(categories)) {
+        if (names.includes(tool.name)) {
+          toolCategory = cat;
+          break;
+        }
+      }
+
       const card = document.createElement('div');
       card.className = 'tool-card';
+      const iconClass = categoryIcons[toolCategory] || 'fa-gear';
+      const iconColor = categoryColors[toolCategory] || 'var(--accent-cyan)';
 
       card.innerHTML = `
+        <div class="tool-card-header">
+          <span class="tool-category-tag" style="color: ${iconColor}; border-color: ${iconColor}30; background: ${iconColor}15;">
+            <i class="fa-solid ${iconClass}"></i> ${toolCategory}
+          </span>
+        </div>
         <div class="tool-card-name">
           <i class="fa-solid fa-gear"></i> ${tool.name}
         </div>
@@ -256,11 +337,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function handleSendMessage() {
     const text = messageInput.value.trim();
-    if (!text) return;
+    if (!text || isSending) return;
+
+    isSending = true;
 
     // Reset input
     messageInput.value = '';
     messageInput.style.height = 'auto';
+
+    // Disable send button
+    btnSend.disabled = true;
+    btnSend.style.opacity = '0.5';
 
     // Hide welcome screen
     welcomeScreen.classList.add('hidden');
@@ -291,6 +378,15 @@ document.addEventListener('DOMContentLoaded', () => {
           currentSessionId = data.session_id;
           updateSessionIdDisplay();
         }
+
+        // Show tools used if any
+        if (data.tools_executed && data.tools_executed.length > 0) {
+          const toolsSummary = data.tools_executed.map(t => 
+            `🔧 **${t.tool}**`
+          ).join('\n');
+          appendToolsInfo(data.tools_executed);
+        }
+
         appendMessage('assistant', data.reply);
         fetchSessions();
       }
@@ -299,7 +395,24 @@ document.addEventListener('DOMContentLoaded', () => {
       appendMessage('assistant', `⚠️ Request failed: ${err.message}`);
     }
 
+    isSending = false;
+    btnSend.disabled = false;
+    btnSend.style.opacity = '1';
     scrollToBottom();
+  }
+
+  function appendToolsInfo(tools) {
+    const row = document.createElement('div');
+    row.className = 'tools-executed-banner';
+
+    const toolNames = tools.map(t => t.tool).join(', ');
+    row.innerHTML = `
+      <i class="fa-solid fa-wrench"></i>
+      <span>Tools used: <strong>${escapeHtml(toolNames)}</strong></span>
+      <span class="tools-count">${tools.length} tool${tools.length > 1 ? 's' : ''}</span>
+    `;
+
+    messagesList.appendChild(row);
   }
 
   function appendMessage(sender, text) {
@@ -334,7 +447,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function scrollToBottom() {
-    chatViewport.scrollTop = chatViewport.scrollHeight;
+    requestAnimationFrame(() => {
+      chatViewport.scrollTop = chatViewport.scrollHeight;
+    });
   }
 
   // --- Formatting Helpers --- //
@@ -343,8 +458,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!content) return '';
 
     // Code blocks ```code```
-    let html = content.replace(/```([\s\S]*?)```/g, (match, p1) => {
-      return `<pre><code>${escapeHtml(p1.trim())}</code></pre>`;
+    let html = content.replace(/```(\w*)\n?([\s\S]*?)```/g, (match, lang, p1) => {
+      return `<pre><code class="lang-${lang}">${escapeHtml(p1.trim())}</code></pre>`;
     });
 
     // Inline code `code`
@@ -355,13 +470,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // Bold **text**
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 
+    // Italic *text*
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+    // Headers ## text
+    html = html.replace(/^### (.*)$/gm, '<h4>$1</h4>');
+    html = html.replace(/^## (.*)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^# (.*)$/gm, '<h2>$1</h2>');
+
     // Bullet points starting with - or *
     html = html.replace(/^[\-*]\s+(.*)$/gm, '<li>$1</li>');
     html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
 
+    // Numbered lists
+    html = html.replace(/^\d+\.\s+(.*)$/gm, '<li>$1</li>');
+
     // Line breaks to <p>
     const paragraphs = html.split(/\n{2,}/).map(p => {
-      if (p.startsWith('<pre>') || p.startsWith('<ul>')) return p;
+      if (p.startsWith('<pre>') || p.startsWith('<ul>') || p.startsWith('<h')) return p;
       return `<p>${p.replace(/\n/g, '<br>')}</p>`;
     });
 

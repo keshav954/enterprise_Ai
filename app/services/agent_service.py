@@ -29,4 +29,5 @@ def run_agent(
         "status": "success",
         "session_id": result["session_id"],
         "reply": result["reply"],
+        "tools_executed": result.get("tools_executed", []),
     }

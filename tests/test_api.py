@@ -50,3 +50,20 @@ def test_static_files():
     assert response_js.status_code == 200
     assert "DOMContentLoaded" in response_js.text
 
+
+def test_health_endpoint():
+    response = client.get("/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert "version" in data
+    assert "model" in data
+    assert "gemini_configured" in data
+
+
+def test_home_includes_version():
+    response = client.get("/")
+    assert response.status_code == 200
+    data = response.json()
+    assert "version" in data
+

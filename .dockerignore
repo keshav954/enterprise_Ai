@@ -1,0 +1,45 @@
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitattributes
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment secrets (copied via env_file in compose)
+.env
+.env.local
+.env.production
+
+# Runtime databases (recreated at startup)
+*.db
+data/chroma/
+
+# Tests (not needed in production image)
+tests/
+.pytest_cache/
+scripts/
+
+# Archives
+*.zip
+
+# Documentation
+*.md
+!knowledge_base/*.md

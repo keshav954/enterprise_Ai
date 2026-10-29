@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: enterprise-ai-employee
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.6-flash
+      - key: PORT
+        value: 8000
+

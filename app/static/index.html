@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Enterprise AI Employee | Workspace Dashboard</title>
-  <meta name="description" content="Intelligent Enterprise AI Assistant with 23 integrated workspace tools.">
+  <meta name="description" content="Intelligent Enterprise AI Assistant with 25+ integrated workspace, code, search, and RAG tools.">
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,6 +16,7 @@
 </head>
 <body>
   <div class="app-container">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
     <!-- Sidebar Navigation -->
     <aside class="sidebar" id="sidebar">
@@ -48,7 +49,7 @@
         <button class="btn-tools-drawer" id="btn-open-tools" title="Inspect Available Enterprise Tools">
           <i class="fa-solid fa-toolbox"></i>
           <span>Workspace Tools</span>
-          <span class="badge-accent" id="sidebar-tools-badge">23</span>
+          <span class="badge-accent" id="sidebar-tools-badge">25</span>
         </button>
         <div class="system-status">
           <span class="status-dot online"></span>
@@ -75,7 +76,7 @@
         <div class="header-actions">
           <div class="model-badge">
             <i class="fa-solid fa-bolt"></i>
-            <span>gemini-3.6-flash</span>
+            <span>Gemini AI</span>
           </div>
           <button class="btn-icon" id="btn-clear-current" title="Clear History for Current Session">
             <i class="fa-solid fa-trash-can"></i>
@@ -186,7 +187,7 @@
           <i class="fa-solid fa-toolbox"></i>
           <div>
             <h3>Enterprise AI Tools Registry</h3>
-            <p>23 capability tools available to the Gemini assistant</p>
+            <p>25 capability tools available to the Gemini assistant</p>
           </div>
         </div>
         <button class="modal-close" id="btn-close-tools"><i class="fa-solid fa-xmark"></i></button>
