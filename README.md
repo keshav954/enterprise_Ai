@@ -71,6 +71,18 @@ python scripts/list_models.py
 | GET | `/sessions` | List active + stored session IDs |
 | GET | `/chat/{session_id}/history` | Full history for a session |
 | DELETE | `/chat/{session_id}` | Clear a session's history |
+| GET | `/knowledge-base/stats` | Document and chunk counts for RAG |
+| GET | `/knowledge-base/documents` | List stored knowledge base documents |
+| POST | `/knowledge-base/rebuild` | Trigger semantic vector index rebuild |
+| POST | `/knowledge-base/upload` | Upload `.md`/`.txt` document and index it |
+
+## Authentication & Rate Limiting
+
+- **API Token Security:** Set `API_AUTH_TOKEN=your_secret_token` in `.env` to protect `/chat`, deletion, and knowledge-base management endpoints. Clients authenticate with either:
+  - Header: `Authorization: Bearer your_secret_token`
+  - Header: `X-API-Key: your_secret_token`
+  Leave `API_AUTH_TOKEN` empty in development for open access.
+- **Rate Limiting:** Protects the AI endpoint against quota exhaustion (`RATE_LIMIT_PER_MINUTE=60` by default). Returns HTTP `429 Too Many Requests` when exceeded.
 
 ## Tools available to the agent
 

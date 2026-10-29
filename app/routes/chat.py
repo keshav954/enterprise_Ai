@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Path as APIPath
+from fastapi import APIRouter, Depends, HTTPException, Path as APIPath
 from app.models.chat_models import ChatRequest
+from app.security.guard import verify_api_token, rate_limiter
 from app.services.gemini_service import (
     send_message,
     list_sessions,
@@ -11,7 +12,7 @@ from app.tools.company_tools import TOOLS
 router = APIRouter()
 
 
-@router.post("/chat")
+@router.post("/chat", dependencies=[Depends(verify_api_token), Depends(rate_limiter)])
 def chat(request: ChatRequest):
     try:
         return send_message(
@@ -51,7 +52,7 @@ def session_history(session_id: str = APIPath(...)):
     return get_session_history(session_id)
 
 
-@router.delete("/chat/{session_id}")
+@router.delete("/chat/{session_id}", dependencies=[Depends(verify_api_token)])
 def delete_session(session_id: str = APIPath(...)):
     result = clear_session(session_id)
     if result["status"] == "error":

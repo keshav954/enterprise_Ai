@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     port: int = Field(default=8000)
     debug: bool = Field(default=False)
 
+    # Security & Rate Limiting
+    api_auth_token: str = Field(default="")
+    rate_limit_per_minute: int = Field(default=60)
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
