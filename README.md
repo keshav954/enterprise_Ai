@@ -50,11 +50,14 @@ A production-ready, multidomain agentic AI platform that serves as a general-pur
 - **Human-in-the-Loop Safeguards:** Consequential actions (file overwrites, database mutations, purchase orders) trigger approval pauses until explicitly granted by a human reviewer.
 - **Developer Execution Tools:** Restricted subprocess test runner (`run_project_tests`) and intelligent failure diagnosis (`summarize_test_failures`).
 
-### 4. Enterprise Security & Session Memory
-- **Dual Token Auth:** Protects API endpoints via `Authorization: Bearer <token>` or `X-API-Key: <token>`.
-- **Sliding-Window Rate Limiter:** Per-IP sliding-window rate limiting prevents API abuse and quota exhaustion.
-- **Path Traversal Sandboxing:** All file access is bounded to the `workspace/` and `knowledge_base/` roots; system directories and sensitive files (`.env`, `memory.db`, credentials) are strictly protected.
-- **Persistent SQLite Memory:** Long-term conversation sessions stored in SQLite with full rollback, deletion, and export capabilities.
+### 4. Enterprise Security & Hardened Architecture
+- **API Key Authentication (`APP_API_KEY`):** Constant-time comparison (`secrets.compare_digest`) supporting comma-separated authorized keys. Required header: `Authorization: Bearer <key>` on all routes except `GET /health` and static files. If `ENV=production` and no key is configured, the server strictly refuses to start.
+- **Caller Session Isolation:** Every chat session is scoped to the sha256 hash of the caller's API key in SQLite and memory. `/sessions` lists only the caller's sessions; cross-session read or deletion attempts return `404 Not Found`.
+- **CORS Hardening (`ALLOWED_ORIGINS`):** Origins configured via comma-separated list. Wildcard `*` is strictly forbidden from combining with `allow_credentials=True`.
+- **Pydantic Request Validation:** Message constrained to 1..4000 characters (`MAX_MESSAGE_CHARS`), `session_id` strictly validated against `^[A-Za-z0-9_-]{8,64}$`.
+- **Per-Key Rate Limiting (`RATE_LIMIT_PER_MIN`):** Sliding-window rate limiting per API key returning HTTP `429 Too Many Requests` with dynamic `Retry-After` header.
+- **Request-ID Tracing & Safe Structured Logging:** Middleware assigns a unique `X-Request-ID` to every request. Unhandled exceptions are logged with full stack traces on the server while returning generic sanitized messages (`Internal Server Error. Request ID: ...`) to clients. Sensitive keys and message bodies are never logged.
+- **Dashboard & XSS Protection:** Static web dashboard prompts for the API key, stores it in `sessionStorage`, transmits `Authorization: Bearer <key>` on all requests, and sanitizes all dynamic message and tool output using **DOMPurify**.
 
 ---
 

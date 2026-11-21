@@ -3,6 +3,7 @@ import uuid
 from typing import Dict, Optional
 
 from dotenv import load_dotenv
+from fastapi import HTTPException
 from google import genai
 from google.genai import chats, types
 
@@ -24,9 +25,9 @@ MODEL_NAME = settings.gemini_model
 # Maximum chat sessions
 MAX_SESSIONS = settings.max_sessions
 
-# Store chat sessions
+# Store chat sessions and ownership
 sessions: Dict[str, chats.Chat] = {}
-
+session_owners: Dict[str, str] = {}
 
 TOOL_MAP = {tool.__name__: tool for tool in TOOLS}
 MAX_TOOL_LOOPS = 5
@@ -57,21 +58,35 @@ def execute_tool_call(call) -> str:
 
 def send_message(
     message: str,
-    session_id: Optional[str] = None
+    session_id: Optional[str] = None,
+    key_hash: str = "",
 ):
     """
-    Send a message to Gemini, handle automatic function execution loops, and maintain chat history across sessions.
+    Send a message to Gemini, handle automatic function execution loops,
+    and maintain caller-scoped chat history across sessions.
     """
     if session_id is None:
         session_id = str(uuid.uuid4())
+
+    # Verify session isolation: reject cross-session access
+    if session_id in session_owners and key_hash and session_owners[session_id] != key_hash:
+        raise HTTPException(status_code=404, detail="Session not found.")
+
+    # Check database ownership for existing session
+    past_history = memory_service.get_history(session_id, key_hash=key_hash)
+    if past_history is None:
+        # Check if it exists for someone else
+        unfiltered_history = memory_service.get_history(session_id, key_hash="")
+        if unfiltered_history is not None and key_hash:
+            raise HTTPException(status_code=404, detail="Session not found.")
 
     if session_id not in sessions:
         if len(sessions) >= MAX_SESSIONS:
             oldest = next(iter(sessions))
             del sessions[oldest]
+            if oldest in session_owners:
+                del session_owners[oldest]
 
-        # Load existing history from SQLite if available
-        past_history = memory_service.get_history(session_id)
         chat_history = []
         if past_history:
             for item in past_history:
@@ -92,8 +107,13 @@ def send_message(
             ),
         )
 
+    session_owners[session_id] = key_hash
+
     # Track user message in memory
-    memory_service.save_message(session_id, "user", message)
+    try:
+        memory_service.save_message(session_id, "user", message, key_hash=key_hash)
+    except PermissionError:
+        raise HTTPException(status_code=404, detail="Session not found.")
 
     chat = sessions[session_id]
     try:
@@ -164,7 +184,7 @@ def send_message(
     reply_text = response.text or "(No response from model)"
 
     # Track assistant response in memory
-    memory_service.save_message(session_id, "model", reply_text)
+    memory_service.save_message(session_id, "model", reply_text, key_hash=key_hash)
 
     return {
         "session_id": session_id,
@@ -173,13 +193,15 @@ def send_message(
     }
 
 
-
-def list_sessions():
+def list_sessions(key_hash: str = ""):
     """
-    Return all active and stored sessions.
+    Return active and stored sessions scoped to caller's key_hash.
     """
-    stored_sessions = memory_service.get_stored_sessions()
-    active_sessions = list(sessions.keys())
+    stored_sessions = memory_service.get_stored_sessions(key_hash=key_hash)
+    active_sessions = [
+        sid for sid in sessions
+        if not key_hash or session_owners.get(sid, "") == key_hash
+    ]
 
     # Combine unique session IDs maintaining order
     combined = list(dict.fromkeys(active_sessions + stored_sessions))
@@ -189,15 +211,23 @@ def list_sessions():
     }
 
 
-def clear_session(session_id: str):
+def clear_session(session_id: str, key_hash: str = ""):
     """
-    Delete a chat session from memory and database.
+    Delete a chat session from memory and database, respecting caller scoping.
     """
+    if session_id in session_owners and key_hash and session_owners[session_id] != key_hash:
+        return {
+            "status": "error",
+            "message": "Session not found."
+        }
+
     in_memory = session_id in sessions
     if in_memory:
         del sessions[session_id]
+    if session_id in session_owners:
+        del session_owners[session_id]
 
-    cleared = memory_service.clear_history(session_id)
+    cleared = memory_service.clear_history(session_id, key_hash=key_hash)
 
     if in_memory or cleared:
         return {
@@ -211,12 +241,18 @@ def clear_session(session_id: str):
     }
 
 
+def get_session_history(session_id: str, key_hash: str = ""):
+    """
+    Retrieves recorded message history for a session scoped to caller's key_hash.
+    """
+    if session_id in session_owners and key_hash and session_owners[session_id] != key_hash:
+        return None
 
-def get_session_history(session_id: str):
-    """
-    Retrieves recorded message history for a session.
-    """
+    history = memory_service.get_history(session_id, key_hash=key_hash)
+    if history is None:
+        return None
+
     return {
         "session_id": session_id,
-        "history": memory_service.get_history(session_id)
+        "history": history
     }

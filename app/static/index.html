@@ -19,6 +19,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   
+  <!-- DOMPurify for XSS Protection -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js"></script>
+  
   <!-- Custom Styling -->
   <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -425,6 +428,41 @@
               <span class="diag-label">Gemini API Key:</span>
               <span class="diag-value" id="diag-gemini-key">-</span>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- API Key Entry Modal Prompt -->
+  <div class="modal-overlay hidden" id="api-key-prompt-modal">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-key" style="color: var(--accent-primary);"></i>
+          <div>
+            <h3>API Authentication Key</h3>
+            <p>Enter your application API key to interact with the AI Employee</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btn-close-api-key-prompt"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-group">
+          <label for="prompt-api-key-input">
+            <strong>Application API Key (APP_API_KEY)</strong>
+            <span>Sent as <code>Authorization: Bearer &lt;key&gt;</code> on all requests. Stored in sessionStorage.</span>
+          </label>
+          <div class="input-with-button" style="margin-top: 8px;">
+            <input type="password" id="prompt-api-key-input" placeholder="Enter API Key...">
+            <button class="btn-icon" id="btn-toggle-prompt-key-visibility" type="button" title="Toggle visibility">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 16px;">
+            <button class="btn-primary" id="btn-save-prompt-key" style="flex: 1;">
+              <i class="fa-solid fa-check"></i> Save & Continue
+            </button>
           </div>
         </div>
       </div>

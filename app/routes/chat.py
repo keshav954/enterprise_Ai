@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Path as APIPath
+import logging
+from fastapi import APIRouter, Depends, HTTPException, Path as APIPath, Request
 from app.models.chat_models import ChatRequest
-from app.security.guard import verify_api_token, rate_limiter
+from app.security.guard import verify_api_key, rate_limiter
 from app.services.gemini_service import (
     send_message,
     list_sessions,
@@ -9,22 +10,28 @@ from app.services.gemini_service import (
 )
 from app.tools.company_tools import TOOLS
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 
-@router.post("/chat", dependencies=[Depends(verify_api_token), Depends(rate_limiter)])
-def chat(request: ChatRequest):
+@router.post("/chat", dependencies=[Depends(rate_limiter)])
+def chat(request: ChatRequest, req: Request):
+    req_id = getattr(req.state, "request_id", "unknown")
+    key_hash = getattr(req.state, "key_hash", "")
     try:
         return send_message(
             message=request.message,
             session_id=request.session_id,
+            key_hash=key_hash,
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        logger.exception(f"Unhandled error in chat endpoint [request_id={req_id}]")
         raise HTTPException(
             status_code=500,
-            detail=str(e),
+            detail=f"An internal server error occurred. Request ID: {req_id}",
         )
 
 
@@ -43,18 +50,33 @@ def get_tools():
 
 
 @router.get("/sessions")
-def sessions():
-    return list_sessions()
+def sessions(req: Request):
+    key_hash = getattr(req.state, "key_hash", "")
+    return list_sessions(key_hash=key_hash)
 
 
 @router.get("/chat/{session_id}/history")
-def session_history(session_id: str = APIPath(...)):
-    return get_session_history(session_id)
+def session_history(
+    req: Request,
+    session_id: str = APIPath(..., pattern=r"^[A-Za-z0-9_-]{8,64}$"),
+):
+    key_hash = getattr(req.state, "key_hash", "")
+    res = get_session_history(session_id, key_hash=key_hash)
+    if res is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Session not found.",
+        )
+    return res
 
 
-@router.delete("/chat/{session_id}", dependencies=[Depends(verify_api_token)])
-def delete_session(session_id: str = APIPath(...)):
-    result = clear_session(session_id)
+@router.delete("/chat/{session_id}")
+def delete_session(
+    req: Request,
+    session_id: str = APIPath(..., pattern=r"^[A-Za-z0-9_-]{8,64}$"),
+):
+    key_hash = getattr(req.state, "key_hash", "")
+    result = clear_session(session_id, key_hash=key_hash)
     if result["status"] == "error":
         raise HTTPException(
             status_code=404,

@@ -80,6 +80,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const diagModel = document.getElementById('diag-model');
   const diagGeminiKey = document.getElementById('diag-gemini-key');
 
+  // DOM Elements - API Key Prompt Modal
+  const apiKeyPromptModal = document.getElementById('api-key-prompt-modal');
+  const promptApiKeyInput = document.getElementById('prompt-api-key-input');
+  const btnSavePromptKey = document.getElementById('btn-save-prompt-key');
+  const btnCloseApiKeyPrompt = document.getElementById('btn-close-api-key-prompt');
+  const btnTogglePromptKeyVisibility = document.getElementById('btn-toggle-prompt-key-visibility');
+
   // State variables
   let currentSessionId = getOrGenerateSessionId();
   let availableTools = [];
@@ -92,11 +99,19 @@ document.addEventListener('DOMContentLoaded', () => {
   function init() {
     updateSessionIdDisplay();
     loadSavedToken();
+    checkApiKeyPrompt();
     checkHealth();
     fetchSessions();
     fetchTools();
     fetchKbStats();
     bindEvents();
+  }
+
+  function checkApiKeyPrompt() {
+    const key = getApiKey();
+    if (!key && apiKeyPromptModal) {
+      apiKeyPromptModal.classList.remove('hidden');
+    }
   }
 
   function getOrGenerateSessionId() {
@@ -109,28 +124,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- Auth Token Helpers --- //
-  function getAuthToken() {
-    return localStorage.getItem('enterprise_ai_auth_token') || '';
+  // --- Auth Token & API Key Helpers --- //
+  function getApiKey() {
+    return sessionStorage.getItem('enterprise_ai_api_key') || localStorage.getItem('enterprise_ai_auth_token') || '';
   }
 
-  function setAuthToken(token) {
+  function setApiKey(token) {
     if (token) {
-      localStorage.setItem('enterprise_ai_auth_token', token.trim());
+      const trimmed = token.trim();
+      sessionStorage.setItem('enterprise_ai_api_key', trimmed);
+      localStorage.setItem('enterprise_ai_auth_token', trimmed);
     } else {
+      sessionStorage.removeItem('enterprise_ai_api_key');
       localStorage.removeItem('enterprise_ai_auth_token');
     }
   }
 
+  function getAuthToken() {
+    return getApiKey();
+  }
+
+  function setAuthToken(token) {
+    setApiKey(token);
+  }
+
   function loadSavedToken() {
+    const current = getApiKey();
     if (settingsAuthToken) {
-      settingsAuthToken.value = getAuthToken();
+      settingsAuthToken.value = current;
+    }
+    if (promptApiKeyInput) {
+      promptApiKeyInput.value = current;
     }
   }
 
   function getAuthHeaders(extraHeaders = {}) {
     const headers = { ...extraHeaders };
-    const token = getAuthToken();
+    const token = getApiKey();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -327,7 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Modal background clicks to dismiss
-    [toolsModal, kbModal, workflowsModal, analyticsModal, settingsModal].forEach(modal => {
+    [toolsModal, kbModal, workflowsModal, analyticsModal, settingsModal, apiKeyPromptModal].forEach(modal => {
       if (!modal) return;
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
@@ -339,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Escape key to close any active modal
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        [toolsModal, kbModal, workflowsModal, analyticsModal, settingsModal].forEach(m => m && m.classList.add('hidden'));
+        [toolsModal, kbModal, workflowsModal, analyticsModal, settingsModal, apiKeyPromptModal].forEach(m => m && m.classList.add('hidden'));
         closeSidebar();
       }
     });
@@ -402,6 +432,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const isPassword = settingsAuthToken.type === 'password';
         settingsAuthToken.type = isPassword ? 'text' : 'password';
         btnToggleTokenVisibility.innerHTML = isPassword ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
+      });
+    }
+
+    // API Key Prompt Modal events
+    if (btnSavePromptKey) {
+      btnSavePromptKey.addEventListener('click', () => {
+        const key = promptApiKeyInput.value.trim();
+        if (key) {
+          setApiKey(key);
+          if (settingsAuthToken) settingsAuthToken.value = key;
+          apiKeyPromptModal.classList.add('hidden');
+          showToast('API key saved');
+          fetchSessions();
+          fetchTools();
+          fetchKbStats();
+        } else {
+          showToast('Please enter an API key', true);
+        }
+      });
+    }
+
+    if (btnCloseApiKeyPrompt) {
+      btnCloseApiKeyPrompt.addEventListener('click', () => {
+        apiKeyPromptModal.classList.add('hidden');
+      });
+    }
+
+    if (btnTogglePromptKeyVisibility) {
+      btnTogglePromptKeyVisibility.addEventListener('click', () => {
+        const isPassword = promptApiKeyInput.type === 'password';
+        promptApiKeyInput.type = isPassword ? 'text' : 'password';
+        btnTogglePromptKeyVisibility.innerHTML = isPassword ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
       });
     }
   }
@@ -1111,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const avatarClass = isUser ? 'user-avatar' : 'assistant-avatar';
     const avatarIcon = isUser ? 'fa-user' : 'fa-robot';
 
-    const formattedContent = isUser ? escapeHtml(text) : formatMarkdown(text);
+    const formattedContent = isUser ? escapeHtml(text) : sanitizeHtml(formatMarkdown(text));
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     row.innerHTML = `
@@ -1164,7 +1226,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2500);
   }
 
-  // --- Formatting Helpers --- //
+  // --- Sanitization & Formatting Helpers --- //
+
+  function sanitizeHtml(dirty) {
+    if (typeof DOMPurify !== 'undefined' && DOMPurify.sanitize) {
+      return DOMPurify.sanitize(dirty, {
+        ALLOWED_TAGS: [
+          'b', 'i', 'em', 'strong', 'a', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+          'ul', 'ol', 'li', 'code', 'pre', 'div', 'span', 'br', 'table', 'thead',
+          'tbody', 'tr', 'th', 'td', 'blockquote', 'hr'
+        ],
+        ALLOWED_ATTR: ['href', 'title', 'class', 'target', 'style', 'data-prompt', 'data-task-id', 'data-approved']
+      });
+    }
+    return escapeHtml(dirty);
+  }
 
   function formatMarkdown(content) {
     if (!content) return '';
