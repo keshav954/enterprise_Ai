@@ -1,6 +1,8 @@
 import re
 from typing import Optional
+
 from pydantic import BaseModel, Field, field_validator
+
 from app.config.settings import settings
 
 SESSION_ID_PATTERN = r"^[A-Za-z0-9_-]{8,64}$"

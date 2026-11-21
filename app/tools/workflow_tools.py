@@ -3,13 +3,12 @@ Workflow Engine Tools for Enterprise AI Employee:
 Plan → Execute → Verify Agentic Orchestration with Human Approval Gates.
 Also includes developer execution tools (safe test runner & failure summarizer).
 """
-import json
 import subprocess
 import sys
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -209,7 +208,7 @@ def summarize_test_failures(test_output: str) -> str:
         return "No test output provided for analysis."
 
     lines = test_output.splitlines()
-    failures = [l for l in lines if "FAILED" in l or "ERROR" in l]
+    failures = [line for line in lines if "FAILED" in line or "ERROR" in line]
 
     if not failures:
         return "✓ No test failures detected in output. All tests passed or output was clean."

@@ -1,9 +1,8 @@
 from app.tools.workspace_tools import (
-    WORKSPACE_DIR,
-    SENSITIVE_FILES,
     MAX_FILE_BYTES,
-    safe_workspace_path,
+    WORKSPACE_DIR,
     read_workspace_file,
+    safe_workspace_path,
 )
 
 SKIPPED_DIR_NAMES = {"venv", "__pycache__"}

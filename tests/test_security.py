@@ -3,13 +3,14 @@ Tests for Security: API-key Authentication, Rate Limiting, CORS,
 Session Scoping, Validation, Request-ID, and XSS Sanitization.
 """
 import hashlib
+
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app
 from app.config.settings import settings
-from app.security.guard import reset_rate_limits
+from app.main import app
 from app.memory import memory_service
+from app.security.guard import reset_rate_limits
 
 client = TestClient(app)
 
@@ -266,7 +267,7 @@ def test_xss_inert_rendering(monkeypatch):
     )
 
     xss_payload = '<img src=x onerror=alert(1)>'
-    
+
     # 1. Pydantic accepts the text as content
     req = client.post("/chat", json={"message": xss_payload})
     assert req.status_code != 422

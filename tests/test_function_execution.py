@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
-from app.services.gemini_service import TOOL_MAP, execute_tool_call, MAX_TOOL_LOOPS
-from app.tools.company_tools import get_company_info, count_workspace_files
+
+from app.services.gemini_service import MAX_TOOL_LOOPS, TOOL_MAP, execute_tool_call
 
 
 def test_tool_map_registration():

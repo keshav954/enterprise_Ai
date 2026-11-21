@@ -3,18 +3,18 @@ REST API Routes for AI Data Analyst & Reporting.
 Supports inspecting datasets, generating calculations, and retrieving reports/charts.
 """
 from pathlib import Path
-from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from app.security.guard import verify_api_token
 from app.tools.data_tools import (
+    CHARTS_DIR,
+    REPORTS_DIR,
     analyze_csv_file,
     analyze_excel_file,
     calculate_data_summary,
-    REPORTS_DIR,
-    CHARTS_DIR,
 )
 from app.tools.workspace_tools import WORKSPACE_DIR
 

@@ -2,35 +2,27 @@
 Phase 2 Checks: Startup, Reliability, Lazy Loading, Concurrency, and Tool Safety.
 """
 import os
-import sys
-import time
-import shutil
 import sqlite3
-import pytest
-from pathlib import Path
+import sys
 from concurrent.futures import ThreadPoolExecutor
 
+import pytest
 from fastapi.testclient import TestClient
 
+import app.memory.memory_service as memory_service
+import app.services.gemini_service as gemini_service
 from app.config.settings import settings
 from app.main import app, lifespan
-import app.services.gemini_service as gemini_service
-import app.memory.memory_service as memory_service
+from app.tools.code_tools import read_workspace_lines, replace_text_in_file
+from app.tools.data_tools import _resolve_data_path
 from app.tools.workspace_tools import (
-    WORKSPACE_DIR,
     MAX_FILE_BYTES,
-    safe_workspace_path,
-    read_workspace_file,
-    write_workspace_file,
+    WORKSPACE_DIR,
     append_workspace_file,
     delete_workspace_file,
-    rename_workspace_item,
-    move_workspace_item,
-    copy_workspace_item,
+    read_workspace_file,
+    write_workspace_file,
 )
-from app.tools.code_tools import read_workspace_lines, replace_text_in_file
-from app.tools.search_tools import search_workspace_files, search_text_in_workspace
-from app.tools.data_tools import _resolve_data_path
 
 TEST_API_KEY = "test-reliability-key-12345"
 AUTH_HEADERS = {"Authorization": f"Bearer {TEST_API_KEY}"}

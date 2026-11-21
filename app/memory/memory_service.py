@@ -2,7 +2,7 @@ import os
 import shutil
 import sqlite3
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 from app.config.settings import settings
 

@@ -1,5 +1,4 @@
-from pathlib import Path
-from app.tools.workspace_tools import WORKSPACE_DIR, SENSITIVE_FILES
+from app.tools.workspace_tools import SENSITIVE_FILES, WORKSPACE_DIR
 
 
 def search_workspace_files(keyword: str):

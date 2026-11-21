@@ -1,6 +1,7 @@
+import os
+
 from dotenv import load_dotenv
 from google import genai
-import os
 
 print("Step 1")
 

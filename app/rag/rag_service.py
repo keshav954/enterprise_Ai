@@ -6,7 +6,7 @@ Features:
 - Document comparison
 - Strict grounding with explicit "unsupported/not found" answers
 """
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from app.rag.document_loader import (
     KNOWLEDGE_BASE_DIR,

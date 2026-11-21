@@ -18,12 +18,12 @@ from typing import Any, Dict, Optional
 from dotenv import load_dotenv
 from fastapi import HTTPException
 from google import genai
-from google.genai import chats, types
+from google.genai import types
 
-from app.tools.company_tools import TOOLS
-from app.prompts.system_prompt import SYSTEM_PROMPT
 from app.config.settings import settings
 from app.memory import memory_service
+from app.prompts.system_prompt import SYSTEM_PROMPT
+from app.tools.company_tools import TOOLS
 
 # Load environment variables
 load_dotenv()
@@ -229,7 +229,7 @@ def send_message(
                 error_msg = str(e)
                 if "RESOURCE_EXHAUSTED" in error_msg or "429" in error_msg:
                     friendly_err = (
-                        f"⚠️ **Gemini API Quota Exceeded during tool execution**\n\n"
+                        "⚠️ **Gemini API Quota Exceeded during tool execution**\n\n"
                         "Rate limit reached on model `" + MODEL_NAME + "`. Please update your API key in `.env`."
                     )
                     return {

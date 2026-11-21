@@ -1,21 +1,21 @@
+import logging
 import os
 import time
 import uuid
-import logging
-from pathlib import Path
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config.settings import settings
-from app.security.guard import verify_api_key
+from app.routes.analytics import router as analytics_router
 from app.routes.chat import router as chat_router
 from app.routes.knowledge_base import router as knowledge_base_router
-from app.routes.analytics import router as analytics_router
 from app.routes.workflows import router as workflows_router
+from app.security.guard import verify_api_key
 from app.tools.company_tools import TOOLS
 
 # Configure structured logging
@@ -67,7 +67,7 @@ async def request_id_and_logging_middleware(request: Request, call_next):
 
     try:
         response = await call_next(request)
-    except Exception as exc:
+    except Exception:
         duration_ms = round((time.time() - start_time) * 1000.0, 2)
         logger.exception(
             "Unhandled server exception during request [method=%s path=%s duration_ms=%s]",

@@ -1,17 +1,14 @@
 """
 Unit tests for AI Data Analyst tool suite.
 """
-import os
-from pathlib import Path
-import pytest
 
 from app.tools.data_tools import (
+    CHARTS_DIR,
+    REPORTS_DIR,
     analyze_csv_file,
     calculate_data_summary,
     create_data_chart,
     generate_analysis_report,
-    REPORTS_DIR,
-    CHARTS_DIR,
 )
 
 

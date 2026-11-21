@@ -2,6 +2,7 @@
 Tests for Analytics and Workflows REST API routes.
 """
 from fastapi.testclient import TestClient
+
 from app.main import app
 
 client = TestClient(app)

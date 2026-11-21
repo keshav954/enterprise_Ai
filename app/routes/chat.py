@@ -1,12 +1,15 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Path as APIPath, Request
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import Path as APIPath
+
 from app.models.chat_models import ChatRequest
-from app.security.guard import verify_api_key, rate_limiter
+from app.security.guard import rate_limiter
 from app.services.gemini_service import (
-    send_message,
-    list_sessions,
     clear_session,
     get_session_history,
+    list_sessions,
+    send_message,
 )
 from app.tools.company_tools import TOOLS
 
@@ -27,7 +30,7 @@ def chat(request: ChatRequest, req: Request):
         )
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         logger.exception(f"Unhandled error in chat endpoint [request_id={req_id}]")
         raise HTTPException(
             status_code=500,

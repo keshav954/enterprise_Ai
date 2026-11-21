@@ -6,8 +6,9 @@ Or with custom options:
     python run.py --host 0.0.0.0 --port 8000 --reload
 """
 import argparse
-import sys
+
 import uvicorn
+
 from app.config.settings import settings
 
 

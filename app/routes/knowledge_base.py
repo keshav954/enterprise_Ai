@@ -2,6 +2,7 @@
 REST API Routes for Knowledge Base (RAG) Management.
 """
 from pathlib import Path
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.rag.document_loader import KNOWLEDGE_BASE_DIR, SUPPORTED_EXTENSIONS

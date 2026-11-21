@@ -1,5 +1,7 @@
 # Environment variables (NEVER commit secrets)
 .env
+.env.*
+!.env.example
 
 # Python virtual environment
 venv/
@@ -29,12 +31,22 @@ build/
 .DS_Store
 Thumbs.db
 
-# Local databases
+# Local databases & WAL files
 *.db
-
-# Runtime data (chat history should not be committed)
-*.db
+*.db-shm
+*.db-wal
 app/memory/memory.db
+data/memory.db*
 
 # Vector store runtime data
 data/chroma/
+
+# Test artifacts and coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+
+# Generated reports & charts from test runs
+reports/report_*.md
+reports/charts/*.html

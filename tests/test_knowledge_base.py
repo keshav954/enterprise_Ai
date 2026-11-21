@@ -2,8 +2,7 @@
 Tests for Knowledge Base REST API endpoints.
 """
 import io
-from pathlib import Path
-import pytest
+
 from fastapi.testclient import TestClient
 
 from app.main import app

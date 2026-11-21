@@ -1,6 +1,7 @@
+import os
+
 from dotenv import load_dotenv
 from google import genai
-import os
 
 # Load .env file
 load_dotenv()

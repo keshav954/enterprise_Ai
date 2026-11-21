@@ -201,3 +201,4 @@ docker compose stop
 cp /opt/backups/<timestamp>/memory.db /opt/enterprise-ai/data/memory.db
 docker compose start
 ```
+
