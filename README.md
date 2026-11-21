@@ -167,36 +167,45 @@ Open your browser to:
 
 ## 🐳 Production Deployment
 
-### 1. Docker Compose (Recommended)
+### 1. Single-Server AWS EC2 Production Guide
+For full setup on AWS EC2 Ubuntu Linux with Nginx reverse proxy, Certbot SSL, systemd, and automated backups, see:
+👉 [Production Deployment Guide (infra/DEPLOY.md)](infra/DEPLOY.md) and [Nginx Configuration (infra/nginx.conf)](infra/nginx.conf).
+
+### 2. Docker Compose (Quickstart)
 
 ```bash
 docker compose up --build -d
 ```
 Docker Compose configures volume mounts for `workspace/`, `data/`, `knowledge_base/`, and `reports/` to preserve data across container restarts.
 
-### 2. Standalone Docker Container
+### 3. Container Smoke Test
 
 ```bash
-docker build -t enterprise-ai-employee:latest .
-docker run -p 8000:8000 --env-file .env enterprise-ai-employee:latest
+python scripts/smoke_test.py --base-url http://localhost:8000 --api-key your_secret_api_key_here
 ```
 
-### 3. Cloud Deployment (Render / Railway / Heroku)
-- **Render:** Connect the repo. Render reads [`render.yaml`](file:///c:/Users/kesha/OneDrive/Desktop/VS%20CODE/Enterprise-AI-Employee/render.yaml) automatically to provision the Web Service with healthchecks.
-- **Railway / Heroku:** Deploys via [`Procfile`](file:///c:/Users/kesha/OneDrive/Desktop/VS%20CODE/Enterprise-AI-Employee/Procfile) with Gunicorn and Uvicorn workers.
+### 4. Cloud Deployment (Render / Railway / Heroku)
+- **Render:** Connect the repo. Render reads [`render.yaml`](render.yaml) automatically with starter plan, health check, and persistent disk.
+- **Railway / Heroku:** Deploys via [`Procfile`](Procfile) with Gunicorn and Uvicorn workers (`--workers 1 --threads 4`).
 
 ---
 
 ## 🧪 Testing & Verification
 
-The project includes 52 automated tests covering REST API endpoints, RAG semantic retrieval, deterministic analytics, workflow lifecycles, and security guards:
+The project includes **93 automated tests** with **80%+ statement coverage**, including unit tests, concurrency load tests, Playwright browser end-to-end tests, and container smoke tests:
 
 ```bash
 # Run the complete test suite
-pytest tests/ -v
+pytest -v
 
-# Run with concise summary
-pytest tests/ -q
+# Run with coverage report
+pytest --cov=app --cov-report=term-missing --cov-fail-under=80 -m "not slow"
+
+# Code style and lint check
+ruff check .
+
+# Run container smoke test against running instance
+python scripts/smoke_test.py --base-url http://localhost:8000 --api-key <key>
 ```
 
 ---
