@@ -37,7 +37,7 @@ def main():
         "--workers",
         type=int,
         default=1,
-        help="Number of worker processes (production)",
+        help="Number of worker processes. Default is 1 for safe in-memory sessions, ChromaDB, and SQLite.",
     )
 
     args = parser.parse_args()

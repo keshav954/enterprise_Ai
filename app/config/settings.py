@@ -6,7 +6,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     gemini_api_key: str = Field(default="", validation_alias="GEMINI_API_KEY")
-    gemini_model: str = Field(default="gemini-3.6-flash", validation_alias="GEMINI_MODEL")
+    gemini_model: str = Field(default="gemini-2.5-flash", validation_alias="GEMINI_MODEL")
+    gemini_fake: bool = Field(default=False, validation_alias="GEMINI_FAKE")
     max_sessions: int = Field(default=100, validation_alias="MAX_SESSIONS")
 
     # Deployment settings
@@ -27,7 +28,7 @@ class Settings(BaseSettings):
     max_message_chars: int = Field(default=4000, validation_alias="MAX_MESSAGE_CHARS")
 
     # Database
-    memory_db_path: str = Field(default="", validation_alias="MEMORY_DB_PATH")
+    memory_db_path: str = Field(default="data/memory.db", validation_alias="MEMORY_DB_PATH")
 
     model_config = SettingsConfigDict(
         env_file=".env",

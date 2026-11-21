@@ -1,16 +1,27 @@
+from pathlib import Path
 from app.tools.workspace_tools import WORKSPACE_DIR, SENSITIVE_FILES
 
 
 def search_workspace_files(keyword: str):
     """
-    Searches for files and folders by name.
+    Searches for files and folders by name, skipping symlink escapes and sensitive files.
     """
     try:
         matches = []
         keyword = keyword.lower()
+        resolved_workspace = WORKSPACE_DIR.resolve()
         for path in WORKSPACE_DIR.rglob("*"):
             if path.name.startswith(".") or "venv" in path.parts or "__pycache__" in path.parts:
                 continue
+            if path.name in SENSITIVE_FILES:
+                continue
+            if path.is_symlink():
+                try:
+                    if not path.resolve().is_relative_to(resolved_workspace):
+                        continue
+                except Exception:
+                    continue
+
             if keyword in path.name.lower():
                 if path.is_dir():
                     matches.append(f"Directory: {path.relative_to(WORKSPACE_DIR)}")
@@ -26,15 +37,22 @@ def search_workspace_files(keyword: str):
 
 def search_text_in_workspace(text: str):
     """
-    Searches for text inside all workspace files.
+    Searches for text inside all workspace files, skipping symlink escapes and sensitive files.
     """
     try:
         matches = []
+        resolved_workspace = WORKSPACE_DIR.resolve()
         for path in WORKSPACE_DIR.rglob("*"):
             if not path.is_file() or path.name in SENSITIVE_FILES:
                 continue
             if path.name.startswith(".") or "venv" in path.parts or "__pycache__" in path.parts:
                 continue
+            if path.is_symlink():
+                try:
+                    if not path.resolve().is_relative_to(resolved_workspace):
+                        continue
+                except Exception:
+                    continue
 
             try:
                 with open(path, "r", encoding="utf-8", errors="ignore") as f:
@@ -59,11 +77,18 @@ def search_workspace_text(text: str):
     """
     results = []
     try:
+        resolved_workspace = WORKSPACE_DIR.resolve()
         for file in WORKSPACE_DIR.rglob("*"):
             if not file.is_file() or file.name in SENSITIVE_FILES:
                 continue
             if file.name.startswith(".") or "venv" in file.parts or "__pycache__" in file.parts:
                 continue
+            if file.is_symlink():
+                try:
+                    if not file.resolve().is_relative_to(resolved_workspace):
+                        continue
+                except Exception:
+                    continue
 
             try:
                 with open(file, "r", encoding="utf-8", errors="replace") as f:
@@ -87,11 +112,19 @@ def find_workspace_files(pattern: str):
     """
     try:
         matches = []
+        resolved_workspace = WORKSPACE_DIR.resolve()
         for item in WORKSPACE_DIR.rglob("*"):
             if not item.is_file() or item.name in SENSITIVE_FILES:
                 continue
             if item.name.startswith(".") or "venv" in item.parts or "__pycache__" in item.parts:
                 continue
+            if item.is_symlink():
+                try:
+                    if not item.resolve().is_relative_to(resolved_workspace):
+                        continue
+                except Exception:
+                    continue
+
             if pattern.lower() in item.name.lower():
                 matches.append(str(item.relative_to(WORKSPACE_DIR)))
 

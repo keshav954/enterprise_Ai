@@ -1,6 +1,19 @@
+"""
+Gemini Service for Enterprise AI Employee.
+
+Architecture & Concurrency:
+- Runs in a single worker process (`--workers 1 --threads 4`).
+- Single-worker design is required because in-memory chat session objects (`sessions`),
+  ChromaDB's PersistentClient, and SQLite cannot be safely shared across multiple
+  concurrent OS processes without corruption or lock contention.
+- In-memory session objects and ownership are protected across threads with `_sessions_lock`.
+- Gemini client is lazy-loaded on demand (app starts fast without crashing when unconfigured).
+- Supports `GEMINI_FAKE=1` test double for offline testing (strictly refused in production).
+"""
 import os
+import threading
 import uuid
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from dotenv import load_dotenv
 from fastapi import HTTPException
@@ -15,22 +28,54 @@ from app.memory import memory_service
 # Load environment variables
 load_dotenv()
 
-# Gemini Client
-api_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY")
-client = genai.Client(api_key=api_key)
-
 # Model Name
 MODEL_NAME = settings.gemini_model
 
 # Maximum chat sessions
 MAX_SESSIONS = settings.max_sessions
 
-# Store chat sessions and ownership
-sessions: Dict[str, chats.Chat] = {}
+# Maximum characters returned by a tool to the model before truncation
+MAX_TOOL_OUTPUT_CHARS = 20000
+
+# Store chat sessions and ownership protected by a thread lock
+sessions: Dict[str, Any] = {}
 session_owners: Dict[str, str] = {}
+_sessions_lock = threading.Lock()
 
 TOOL_MAP = {tool.__name__: tool for tool in TOOLS}
 MAX_TOOL_LOOPS = 5
+
+_gemini_client = None
+_client_lock = threading.Lock()
+
+
+def is_fake_mode() -> bool:
+    """Check if fake Gemini test double is enabled."""
+    return settings.gemini_fake or os.getenv("GEMINI_FAKE", "").lower() in ("1", "true", "yes")
+
+
+def get_gemini_client():
+    """
+    Returns the Gemini client lazily.
+    If GEMINI_FAKE=1, returns FakeGenaiClient (refused in production).
+    If no GEMINI_API_KEY is configured, returns None.
+    """
+    global _gemini_client
+
+    if is_fake_mode():
+        if settings.env.lower() == "production":
+            raise RuntimeError("GEMINI_FAKE test double is strictly forbidden when ENV=production.")
+        from app.services.fake_gemini import FakeGenaiClient
+        return FakeGenaiClient()
+
+    api_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return None
+
+    with _client_lock:
+        if _gemini_client is None:
+            _gemini_client = genai.Client(api_key=api_key)
+        return _gemini_client
 
 
 def execute_tool_call(call) -> str:
@@ -65,49 +110,58 @@ def send_message(
     Send a message to Gemini, handle automatic function execution loops,
     and maintain caller-scoped chat history across sessions.
     """
+    client = get_gemini_client()
+    if client is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini API is not configured. Please set GEMINI_API_KEY in the server environment.",
+        )
+
     if session_id is None:
         session_id = str(uuid.uuid4())
 
-    # Verify session isolation: reject cross-session access
-    if session_id in session_owners and key_hash and session_owners[session_id] != key_hash:
-        raise HTTPException(status_code=404, detail="Session not found.")
+    with _sessions_lock:
+        # Verify session isolation: reject cross-session access
+        if session_id in session_owners and key_hash and session_owners[session_id] != key_hash:
+            raise HTTPException(status_code=404, detail="Session not found.")
 
     # Check database ownership for existing session
     past_history = memory_service.get_history(session_id, key_hash=key_hash)
     if past_history is None:
-        # Check if it exists for someone else
-        unfiltered_history = memory_service.get_history(session_id, key_hash="")
-        if unfiltered_history is not None and key_hash:
+        # If session already exists in DB for a different key_hash, reject with 404
+        if key_hash and memory_service.session_exists(session_id):
             raise HTTPException(status_code=404, detail="Session not found.")
 
-    if session_id not in sessions:
-        if len(sessions) >= MAX_SESSIONS:
-            oldest = next(iter(sessions))
-            del sessions[oldest]
-            if oldest in session_owners:
-                del session_owners[oldest]
+    with _sessions_lock:
+        if session_id not in sessions:
+            if len(sessions) >= MAX_SESSIONS:
+                oldest = next(iter(sessions))
+                del sessions[oldest]
+                if oldest in session_owners:
+                    del session_owners[oldest]
 
-        chat_history = []
-        if past_history:
-            for item in past_history:
-                role = "user" if item["role"] == "user" else "model"
-                chat_history.append(
-                    types.Content(
-                        role=role,
-                        parts=[types.Part.from_text(text=item["text"])]
+            chat_history = []
+            if past_history:
+                for item in past_history:
+                    role = "user" if item["role"] == "user" else "model"
+                    chat_history.append(
+                        types.Content(
+                            role=role,
+                            parts=[types.Part.from_text(text=item["text"])]
+                        )
                     )
-                )
 
-        sessions[session_id] = client.chats.create(
-            model=MODEL_NAME,
-            history=chat_history if chat_history else None,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                tools=TOOLS,
-            ),
-        )
+            sessions[session_id] = client.chats.create(
+                model=MODEL_NAME,
+                history=chat_history if chat_history else None,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                    tools=TOOLS,
+                ),
+            )
 
-    session_owners[session_id] = key_hash
+        session_owners[session_id] = key_hash
+        chat = sessions[session_id]
 
     # Track user message in memory
     try:
@@ -115,7 +169,6 @@ def send_message(
     except PermissionError:
         raise HTTPException(status_code=404, detail="Session not found.")
 
-    chat = sessions[session_id]
     try:
         response = chat.send_message(message)
     except Exception as e:
@@ -149,6 +202,13 @@ def send_message(
             tool_args = getattr(call, "args", {}) or {}
             result_str = execute_tool_call(call)
 
+            # Cap tool output returned to model at MAX_TOOL_OUTPUT_CHARS
+            if len(result_str) > MAX_TOOL_OUTPUT_CHARS:
+                result_str = (
+                    result_str[:MAX_TOOL_OUTPUT_CHARS]
+                    + f"\n... [Truncated: tool output exceeded {MAX_TOOL_OUTPUT_CHARS} characters]"
+                )
+
             tools_executed.append({
                 "tool": tool_name,
                 "args": dict(tool_args) if isinstance(tool_args, dict) else str(tool_args),
@@ -181,7 +241,7 @@ def send_message(
         else:
             break
 
-    reply_text = response.text or "(No response from model)"
+    reply_text = getattr(response, "text", None) or "(No response from model)"
 
     # Track assistant response in memory
     memory_service.save_message(session_id, "model", reply_text, key_hash=key_hash)
@@ -198,10 +258,11 @@ def list_sessions(key_hash: str = ""):
     Return active and stored sessions scoped to caller's key_hash.
     """
     stored_sessions = memory_service.get_stored_sessions(key_hash=key_hash)
-    active_sessions = [
-        sid for sid in sessions
-        if not key_hash or session_owners.get(sid, "") == key_hash
-    ]
+    with _sessions_lock:
+        active_sessions = [
+            sid for sid in sessions
+            if not key_hash or session_owners.get(sid, "") == key_hash
+        ]
 
     # Combine unique session IDs maintaining order
     combined = list(dict.fromkeys(active_sessions + stored_sessions))
@@ -215,17 +276,18 @@ def clear_session(session_id: str, key_hash: str = ""):
     """
     Delete a chat session from memory and database, respecting caller scoping.
     """
-    if session_id in session_owners and key_hash and session_owners[session_id] != key_hash:
-        return {
-            "status": "error",
-            "message": "Session not found."
-        }
+    with _sessions_lock:
+        if session_id in session_owners and key_hash and session_owners[session_id] != key_hash:
+            return {
+                "status": "error",
+                "message": "Session not found."
+            }
 
-    in_memory = session_id in sessions
-    if in_memory:
-        del sessions[session_id]
-    if session_id in session_owners:
-        del session_owners[session_id]
+        in_memory = session_id in sessions
+        if in_memory:
+            del sessions[session_id]
+        if session_id in session_owners:
+            del session_owners[session_id]
 
     cleared = memory_service.clear_history(session_id, key_hash=key_hash)
 
@@ -245,8 +307,9 @@ def get_session_history(session_id: str, key_hash: str = ""):
     """
     Retrieves recorded message history for a session scoped to caller's key_hash.
     """
-    if session_id in session_owners and key_hash and session_owners[session_id] != key_hash:
-        return None
+    with _sessions_lock:
+        if session_id in session_owners and key_hash and session_owners[session_id] != key_hash:
+            return None
 
     history = memory_service.get_history(session_id, key_hash=key_hash)
     if history is None:

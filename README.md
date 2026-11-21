@@ -59,6 +59,15 @@ A production-ready, multidomain agentic AI platform that serves as a general-pur
 - **Request-ID Tracing & Safe Structured Logging:** Middleware assigns a unique `X-Request-ID` to every request. Unhandled exceptions are logged with full stack traces on the server while returning generic sanitized messages (`Internal Server Error. Request ID: ...`) to clients. Sensitive keys and message bodies are never logged.
 - **Dashboard & XSS Protection:** Static web dashboard prompts for the API key, stores it in `sessionStorage`, transmits `Authorization: Bearer <key>` on all requests, and sanitizes all dynamic message and tool output using **DOMPurify**.
 
+### 5. Reliability, Startup Performance & Tool Safety
+- **Lazy Initialization:** App starts in milliseconds even without a `GEMINI_API_KEY` configured. `GET /health` reports `gemini_configured=false`; `/chat` returns HTTP 503 Service Unavailable with a clear resolution message.
+- **Fast Startup (Lazy Vector Store & PyTorch):** `sentence_transformers` and `chromadb` imports are lazy-loaded on first vector query, reducing `app.main` import time from >14s to <1s.
+- **Single-Worker Thread Concurrency:** Server runs with `--workers 1 --threads 4`. Single-process execution prevents ChromaDB embedded database and SQLite file locking conflicts, while in-memory session handles are synchronized using threading locks.
+- **Persistent SQLite with WAL Mode:** `MEMORY_DB_PATH` defaults to `data/memory.db` (persistent Docker volume). Configured with `PRAGMA journal_mode=WAL` and `PRAGMA busy_timeout=5000` with automatic one-time migration from legacy paths.
+- **Tool Safety Caps & Traversal Guards:** File reads/writes capped at 1 MB. Tool output returned to the LLM truncated to 20,000 characters. All workspace, search, and code tools strictly reject absolute paths, traversal (`..`), and symlink escapes.
+- **Offline Test Double (`GEMINI_FAKE=1`):** Scriptable test double for zero-latency, quota-free CI and integration testing. Strictly forbidden in production (`ENV=production` refuses to start if `GEMINI_FAKE=1`).
+- **Verified Model Default:** Documented default model `gemini-2.5-flash` verified via Google GenAI models API.
+
 ---
 
 ## 🛠️ Complete 38-Tool Registry

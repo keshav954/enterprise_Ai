@@ -37,10 +37,11 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
-# Run with gunicorn + uvicorn workers for production
+# Run with gunicorn + uvicorn workers for production (1 worker, 4 threads for Chroma/SQLite safety)
 CMD ["python", "-m", "gunicorn", "app.main:app", \
      "--worker-class", "uvicorn.workers.UvicornWorker", \
-     "--workers", "2", \
+     "--workers", "1", \
+     "--threads", "4", \
      "--bind", "0.0.0.0:8000", \
      "--timeout", "120", \
      "--access-logfile", "-", \

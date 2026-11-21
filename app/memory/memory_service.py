@@ -1,9 +1,24 @@
+import os
+import shutil
 import sqlite3
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
-DEFAULT_DB_PATH = Path(__file__).resolve().parent / "memory.db"
-_current_db_path: Path = DEFAULT_DB_PATH
+from app.config.settings import settings
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+LEGACY_DB_PATH = Path(__file__).resolve().parent / "memory.db"
+
+
+def _resolve_default_db_path() -> Path:
+    env_path = os.getenv("MEMORY_DB_PATH", "").strip() or settings.memory_db_path
+    if env_path:
+        p = Path(env_path)
+        return p if p.is_absolute() else (PROJECT_ROOT / p)
+    return PROJECT_ROOT / "data" / "memory.db"
+
+
+_current_db_path: Path = _resolve_default_db_path()
 
 
 def set_db_path(db_path: Path):
@@ -15,20 +30,39 @@ def set_db_path(db_path: Path):
     init_db()
 
 
+def migrate_legacy_db_if_needed(target_path: Path):
+    """
+    One-time migration: moves old app/memory/memory.db to target_path (default data/memory.db)
+    if the legacy file exists and the target file does not yet exist.
+    """
+    try:
+        if LEGACY_DB_PATH.exists() and target_path.resolve() != LEGACY_DB_PATH.resolve():
+            if not target_path.exists():
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(LEGACY_DB_PATH), str(target_path))
+    except Exception:
+        pass
+
+
 def get_connection() -> sqlite3.Connection:
     """
-    Returns a new SQLite connection with auto-commit.
+    Returns a new SQLite connection with auto-commit, WAL journal mode, and busy timeout.
     """
     _current_db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(_current_db_path), check_same_thread=False)
+    conn = sqlite3.connect(str(_current_db_path), timeout=5.0, check_same_thread=False)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA busy_timeout=5000;")
     return conn
 
 
 def init_db():
     """
     Initializes sessions and messages tables with caller key_hash indexing.
+    Performs one-time migration from legacy path if needed.
     """
+    migrate_legacy_db_if_needed(_current_db_path)
+
     with get_connection() as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS sessions (
@@ -93,6 +127,15 @@ def save_message(session_id: str, role: str, text: str, key_hash: str = ""):
             (session_id, role, text, key_hash)
         )
         conn.commit()
+
+
+def session_exists(session_id: str) -> bool:
+    """
+    Checks if a session_id exists in the sessions table.
+    """
+    with get_connection() as conn:
+        cursor = conn.execute("SELECT 1 FROM sessions WHERE session_id = ?", (session_id,))
+        return cursor.fetchone() is not None
 
 
 def get_history(session_id: str, key_hash: str = "") -> Optional[List[Dict[str, Any]]]:

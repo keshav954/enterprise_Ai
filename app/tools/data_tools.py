@@ -19,14 +19,30 @@ CHARTS_DIR = REPORTS_DIR / "charts"
 
 
 def _resolve_data_path(filename: str) -> Optional[Path]:
-    """Find file in workspace or knowledge_base securely."""
-    target = (WORKSPACE_DIR / filename).resolve()
-    if target.exists() and target.is_file() and target.name not in SENSITIVE_FILES:
+    """Find file in workspace or knowledge_base securely, rejecting traversal and symlink escapes."""
+    clean_str = str(filename).strip()
+    if (
+        clean_str.startswith("/")
+        or clean_str.startswith("\\")
+        or Path(clean_str).is_absolute()
+        or (len(clean_str) > 1 and clean_str[1] == ":")
+    ):
+        return None
+
+    resolved_workspace = WORKSPACE_DIR.resolve()
+    target = (WORKSPACE_DIR / clean_str).resolve()
+    if (
+        target.is_relative_to(resolved_workspace)
+        and target.exists()
+        and target.is_file()
+        and target.name not in SENSITIVE_FILES
+    ):
         return target
 
     # Check knowledge_base as fallback
-    kb_target = (PROJECT_ROOT / "knowledge_base" / filename).resolve()
-    if kb_target.exists() and kb_target.is_file():
+    kb_dir = (PROJECT_ROOT / "knowledge_base").resolve()
+    kb_target = (kb_dir / clean_str).resolve()
+    if kb_target.is_relative_to(kb_dir) and kb_target.exists() and kb_target.is_file():
         return kb_target
 
     return None

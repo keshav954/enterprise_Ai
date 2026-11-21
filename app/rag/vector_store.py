@@ -4,13 +4,12 @@ Uses:
 - ChromaDB for persistent vector storage
 - SentenceTransformers for local embeddings
 - Rich source & citation metadata
+Note: chromadb and sentence_transformers are imported lazily inside functions
+so that importing app.main remains lightweight and fast.
 """
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List
-
-import chromadb
-from sentence_transformers import SentenceTransformer
 
 from app.rag.document_loader import build_documents
 
@@ -25,13 +24,15 @@ MAX_DISTANCE = 1.7
 
 @lru_cache(maxsize=1)
 def get_embedding_model():
-    """Load the embedding model once and reuse it."""
+    """Load the embedding model once and reuse it (lazy load)."""
+    from sentence_transformers import SentenceTransformer
     return SentenceTransformer(EMBEDDING_MODEL)
 
 
 @lru_cache(maxsize=1)
 def get_chroma_client():
-    """Create a persistent ChromaDB client."""
+    """Create a persistent ChromaDB client (lazy load)."""
+    import chromadb
     CHROMA_DIR.mkdir(parents=True, exist_ok=True)
     return chromadb.PersistentClient(path=str(CHROMA_DIR))
 
@@ -149,8 +150,8 @@ def vector_store_stats() -> Dict[str, Any]:
     """Return vector database statistics."""
     collection = get_collection()
     return {
-        "collection": COLLECTION_NAME,
+        "collection_name": COLLECTION_NAME,
+        "total_vectors": collection.count(),
         "embedding_model": EMBEDDING_MODEL,
-        "database_path": str(CHROMA_DIR),
-        "vector_count": collection.count(),
+        "storage_directory": str(CHROMA_DIR),
     }

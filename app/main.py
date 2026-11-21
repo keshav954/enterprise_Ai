@@ -36,6 +36,11 @@ async def lifespan(app: FastAPI):
     if settings.env.lower() == "production" and not settings.api_keys:
         raise RuntimeError("Production mode requires APP_API_KEY to be configured.")
 
+    # Production guard: Refuse to run GEMINI_FAKE in production
+    is_fake = settings.gemini_fake or os.getenv("GEMINI_FAKE", "").lower() in ("1", "true", "yes")
+    if settings.env.lower() == "production" and is_fake:
+        raise RuntimeError("GEMINI_FAKE test double is strictly forbidden when ENV=production.")
+
     logger.info(
         "Enterprise AI Employee API starting – %d tools registered. (env=%s)",
         len(TOOLS),
@@ -151,12 +156,14 @@ def home(request: Request):
 @app.get("/health")
 def health_check():
     """Health check endpoint for Docker / load-balancer probes and monitoring (auth exempt)."""
-    from app.config.settings import settings
+    has_real_key = bool(settings.gemini_api_key or os.getenv("GEMINI_API_KEY"))
+    is_fake = settings.gemini_fake or os.getenv("GEMINI_FAKE", "").lower() in ("1", "true", "yes")
     return {
         "status": "healthy",
         "version": app.version,
         "model": settings.gemini_model,
-        "gemini_configured": bool(settings.gemini_api_key),
+        "gemini_configured": has_real_key,
+        "gemini_fake": is_fake,
     }
 
 
