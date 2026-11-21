@@ -1,7 +1,6 @@
 # ─────────────────────────────────────────────────────────────
-# Enterprise AI Employee – Docker Compose (Development & Production)
+# Enterprise AI Employee – Production Docker Compose Stack
 # ─────────────────────────────────────────────────────────────
-version: "3.9"
 
 services:
   app:
@@ -9,22 +8,29 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: enterprise-ai-employee
+    restart: unless-stopped
     ports:
       - "${PORT:-8000}:8000"
     env_file:
       - .env
     environment:
       - PYTHONUNBUFFERED=1
+      - MEMORY_DB_PATH=/app/data/memory.db
     volumes:
-      # Persist runtime data across restarts
-      - ./workspace:/app/workspace
+      # Persistent host volume mounts for persistent data across restarts
       - ./data:/app/data
+      - ./workspace:/app/workspace
       - ./knowledge_base:/app/knowledge_base
       - ./reports:/app/reports
-    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 15s
+      start_period: 90s
