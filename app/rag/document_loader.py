@@ -4,8 +4,11 @@ Supports: .md, .txt, .pdf, .docx, .csv
 Extracts text with page, section, and source metadata.
 """
 import csv
+import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
+
+logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 KNOWLEDGE_BASE_DIR = PROJECT_ROOT / "knowledge_base"
@@ -16,57 +19,73 @@ MAX_CHUNK_SIZE = 1200
 CHUNK_OVERLAP = 200
 
 
-def split_text(text: str) -> List[str]:
+def split_text(
+    text: str,
+    chunk_size: int = MAX_CHUNK_SIZE,
+    overlap: int = CHUNK_OVERLAP,
+) -> list[str]:
     """Split text into overlapping chunks."""
-    text = text.strip()
-    if not text:
+    if not text or not text.strip():
         return []
 
-    chunks = []
+    text = text.strip()
+    chunk_size = max(50, chunk_size)
+    overlap = max(0, min(overlap, chunk_size - 1))
+    step = max(1, chunk_size - overlap)
+
+    chunks: list[str] = []
     start = 0
 
     while start < len(text):
-        end = min(start + MAX_CHUNK_SIZE, len(text))
+        end = min(start + chunk_size, len(text))
         chunk = text[start:end].strip()
         if chunk:
             chunks.append(chunk)
         if end >= len(text):
             break
-        start = end - CHUNK_OVERLAP
+        start += step
 
     return chunks
 
 
-def extract_pdf_pages(file_path: Path) -> List[Dict[str, Any]]:
+def extract_pdf_pages(file_path: Path) -> list[dict[str, Any]]:
     """Extract text from PDF file page by page using pypdf."""
-    from pypdf import PdfReader
+    try:
+        from pypdf import PdfReader
 
-    sections = []
-    reader = PdfReader(str(file_path))
-    for page_idx, page in enumerate(reader.pages, start=1):
-        page_text = page.extract_text() or ""
-        if page_text.strip():
-            sections.append({
-                "page": page_idx,
-                "text": page_text.strip(),
-            })
-    return sections
+        sections: list[dict[str, Any]] = []
+        reader = PdfReader(str(file_path))
+        for page_idx, page in enumerate(reader.pages, start=1):
+            page_text = page.extract_text() or ""
+            if page_text.strip():
+                sections.append({
+                    "page": page_idx,
+                    "text": page_text.strip(),
+                })
+        return sections
+    except Exception as exc:
+        logger.warning("Failed to extract PDF %s: %s", file_path, exc)
+        return []
 
 
 def extract_docx_text(file_path: Path) -> str:
     """Extract text from Word .docx file using python-docx."""
-    from docx import Document
+    try:
+        from docx import Document
 
-    doc = Document(str(file_path))
-    paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
-    return "\n\n".join(paragraphs)
+        doc = Document(str(file_path))
+        paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+        return "\n\n".join(paragraphs)
+    except Exception as exc:
+        logger.warning("Failed to extract DOCX %s: %s", file_path, exc)
+        return ""
 
 
 def extract_csv_text(file_path: Path) -> str:
     """Convert CSV dataset into textual representation for semantic indexing."""
-    lines = []
+    lines: list[str] = []
     try:
-        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+        with file_path.open("r", encoding="utf-8", errors="replace") as f:
             reader = csv.reader(f)
             headers = next(reader, None)
             if headers:
@@ -85,13 +104,13 @@ def extract_csv_text(file_path: Path) -> str:
     return "\n".join(lines)
 
 
-def build_documents() -> List[Dict[str, Any]]:
+def build_documents() -> list[dict[str, Any]]:
     """
     Read all supported documents in KNOWLEDGE_BASE_DIR and split them into indexed chunks.
     Preserves source file, chunk id, file type, and page number metadata.
     """
     KNOWLEDGE_BASE_DIR.mkdir(parents=True, exist_ok=True)
-    documents = []
+    documents: list[dict[str, Any]] = []
 
     for file_path in sorted(KNOWLEDGE_BASE_DIR.rglob("*")):
         if not file_path.is_file():
@@ -109,7 +128,7 @@ def build_documents() -> List[Dict[str, Any]]:
                 for sec in pdf_sections:
                     page_num = sec["page"]
                     chunks = split_text(sec["text"])
-                    for chunk_idx, chunk in enumerate(chunks):
+                    for chunk in chunks:
                         documents.append({
                             "source": rel_source,
                             "filename": file_path.name,
@@ -122,7 +141,7 @@ def build_documents() -> List[Dict[str, Any]]:
             elif ext == ".docx":
                 docx_text = extract_docx_text(file_path)
                 chunks = split_text(docx_text)
-                for chunk_idx, chunk in enumerate(chunks):
+                for chunk in chunks:
                     documents.append({
                         "source": rel_source,
                         "filename": file_path.name,
@@ -135,7 +154,7 @@ def build_documents() -> List[Dict[str, Any]]:
             elif ext == ".csv":
                 csv_text = extract_csv_text(file_path)
                 chunks = split_text(csv_text)
-                for chunk_idx, chunk in enumerate(chunks):
+                for chunk in chunks:
                     documents.append({
                         "source": rel_source,
                         "filename": file_path.name,
@@ -148,7 +167,7 @@ def build_documents() -> List[Dict[str, Any]]:
             else:  # .txt, .md
                 raw_text = file_path.read_text(encoding="utf-8", errors="replace")
                 chunks = split_text(raw_text)
-                for chunk_idx, chunk in enumerate(chunks):
+                for chunk in chunks:
                     documents.append({
                         "source": rel_source,
                         "filename": file_path.name,
@@ -159,7 +178,7 @@ def build_documents() -> List[Dict[str, Any]]:
                     })
 
         except Exception as err:
-            print(f"Error parsing document {file_path}: {err}")
+            logger.warning("Error parsing document %s: %s", file_path, err)
             continue
 
     return documents
