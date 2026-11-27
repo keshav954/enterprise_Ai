@@ -45,8 +45,13 @@ def safe_workspace_path(path_str: str) -> Path:
     ):
         raise PermissionError("Access Denied: Absolute paths are not permitted.")
 
+    # Cross-platform normalization: reject .. path traversal attempts regardless of \ or /
+    normalized_str = clean_str.replace("\\", "/")
+    if ".." in normalized_str.split("/"):
+        raise PermissionError("Access Denied: Path escapes the sandboxed workspace.")
+
     resolved_workspace = WORKSPACE_DIR.resolve()
-    target_path = WORKSPACE_DIR / clean_str
+    target_path = WORKSPACE_DIR / normalized_str
     resolved_target = target_path.resolve()
 
     # Check path traversal

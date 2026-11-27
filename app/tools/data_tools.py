@@ -28,8 +28,12 @@ def _resolve_data_path(filename: str) -> Optional[Path]:
     ):
         return None
 
+    normalized_str = clean_str.replace("\\", "/")
+    if ".." in normalized_str.split("/"):
+        return None
+
     resolved_workspace = WORKSPACE_DIR.resolve()
-    target = (WORKSPACE_DIR / clean_str).resolve()
+    target = (WORKSPACE_DIR / normalized_str).resolve()
     if (
         target.is_relative_to(resolved_workspace)
         and target.exists()
