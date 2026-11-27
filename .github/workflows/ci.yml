@@ -32,7 +32,6 @@ jobs:
 
       - name: Run Pytest with 80% minimum coverage
         env:
-          APP_API_KEY: ci-test-key-12345
           ENV: development
           GEMINI_FAKE: "1"
           MEMORY_DB_PATH: data/memory.db

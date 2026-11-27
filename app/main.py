@@ -18,12 +18,31 @@ from app.routes.workflows import router as workflows_router
 from app.security.guard import verify_api_key
 from app.tools.company_tools import TOOLS
 
+
+class RequestIdFilter(logging.Filter):
+    """Ensures every log record contains a request_id attribute to prevent format KeyError."""
+    def filter(self, record: logging.LogRecord) -> bool:
+        if not hasattr(record, "request_id"):
+            record.request_id = "-"
+        return True
+
+
 # Configure structured logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s (request_id=%(request_id)s): %(message)s",
-    handlers=[logging.StreamHandler()],
-)
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+log_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s (request_id=%(request_id)s): %(message)s")
+log_filter = RequestIdFilter()
+
+if not root_logger.handlers:
+    stream_handler = logging.StreamHandler()
+    stream_handler.addFilter(log_filter)
+    stream_handler.setFormatter(log_formatter)
+    root_logger.addHandler(stream_handler)
+else:
+    for handler in root_logger.handlers:
+        handler.addFilter(log_filter)
+        handler.setFormatter(log_formatter)
+
 logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
