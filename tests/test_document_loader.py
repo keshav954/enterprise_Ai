@@ -1,8 +1,6 @@
 """
 Unit tests for RAG document loader (multi-format loading and text chunking).
 """
-from pathlib import Path
-
 from app.rag.document_loader import (
     build_documents,
     extract_csv_text,

@@ -95,6 +95,8 @@ def test_cross_session_isolation(monkeypatch):
     monkeypatch.setattr(settings, "app_api_key", f"{key_a}, {key_b}")
     monkeypatch.setattr(settings, "api_auth_token", "")
     monkeypatch.setattr(settings, "env", "development")
+    monkeypatch.setattr(settings, "gemini_fake", True)
+    monkeypatch.setenv("GEMINI_FAKE", "1")
 
     headers_a = {"Authorization": f"Bearer {key_a}"}
     headers_b = {"Authorization": f"Bearer {key_b}"}

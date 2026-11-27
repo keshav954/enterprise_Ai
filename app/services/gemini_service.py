@@ -110,13 +110,6 @@ def send_message(
     Send a message to Gemini, handle automatic function execution loops,
     and maintain caller-scoped chat history across sessions.
     """
-    client = get_gemini_client()
-    if client is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Gemini API is not configured. Please set GEMINI_API_KEY in the server environment.",
-        )
-
     if session_id is None:
         session_id = str(uuid.uuid4())
 
@@ -131,6 +124,13 @@ def send_message(
         # If session already exists in DB for a different key_hash, reject with 404
         if key_hash and memory_service.session_exists(session_id):
             raise HTTPException(status_code=404, detail="Session not found.")
+
+    client = get_gemini_client()
+    if client is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini API is not configured. Please set GEMINI_API_KEY in the server environment.",
+        )
 
     with _sessions_lock:
         if session_id not in sessions:
