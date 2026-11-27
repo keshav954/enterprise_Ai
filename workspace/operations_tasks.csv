@@ -1,0 +1,9 @@
+Task_ID,Task_Name,Department,Assignee,Priority,Status,Due_Date,Days_Delayed,Budget,Completion_Pct
+T-101,Database Migration to PostgreSQL,Engineering,Alex,High,In Progress,2026-11-20,7,12000,75
+T-102,Annual SOC2 Compliance Audit,Security,Elena,Critical,Pending,2026-11-25,2,25000,40
+T-103,Customer Support Portal Redesign,Product,Marcus,Medium,Delayed,2026-11-15,12,8500,60
+T-104,Q4 Hardware Restocking Order,Operations,Sarah,High,Blocked,2026-11-18,9,35000,30
+T-105,Employee Onboarding Workflow Automation,HR,David,Low,Completed,2026-11-10,0,4000,100
+T-106,AI Edge Gateway Firmware Patch,Engineering,Alex,Critical,In Progress,2026-11-28,0,9000,85
+T-107,Sales Pipeline Dashboard Integration,Analytics,Lisa,Medium,Delayed,2026-11-22,5,6500,50
+T-108,Supplier SLA Renegotiation,Operations,Sarah,High,In Progress,2026-11-29,0,15000,40
