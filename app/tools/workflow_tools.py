@@ -10,21 +10,50 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 
+from app.tools.workspace_tools import get_current_key_hash
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 # In-memory store with persistence capability
 _WORKFLOWS: Dict[str, Dict[str, Any]] = {}
 
 
-def create_task_plan(goal: str, proposed_steps: str = "") -> str:
+class TaskPlanResult(str):
+    """
+    String representation of the workflow plan that also allows unpacking
+    (task_id, plan_markdown) and accessing .task_id directly.
+    """
+    task_id: str
+    plan: str
+
+    def __new__(cls, task_id: str, plan: str):
+        obj = super().__new__(cls, plan)
+        obj.task_id = task_id
+        obj.plan = plan
+        return obj
+
+    def __iter__(self):
+        return iter((self.task_id, self.plan))
+
+    def __getitem__(self, item):
+        if item == 0:
+            return self.task_id
+        elif item == 1:
+            return self.plan
+        return super().__getitem__(item)
+
+
+def create_task_plan(goal: str, proposed_steps: str = "") -> TaskPlanResult:
     """
     Decompose a complex user goal into structured, verifiable steps.
-    Initializes a tracked workflow state.
+    Initializes a tracked workflow state scoped to the caller's key_hash.
+    Returns TaskPlanResult allowing direct task_id access or unpacking.
     """
     if not goal or not goal.strip():
-        return "Please provide a goal for the workflow plan."
+        return TaskPlanResult("", "Please provide a goal for the workflow plan.")
 
     task_id = f"wf-{uuid.uuid4().hex[:8]}"
+    owner_hash = get_current_key_hash()
 
     steps_list = []
     if proposed_steps:
@@ -48,17 +77,6 @@ def create_task_plan(goal: str, proposed_steps: str = "") -> str:
             {"step_id": 4, "title": "Verify results and validate against criteria", "status": "pending", "requires_approval": False, "output": None},
         ]
 
-    workflow_record = {
-        "task_id": task_id,
-        "goal": goal.strip(),
-        "created_at": datetime.now().isoformat(),
-        "status": "in_progress",
-        "current_step": 1,
-        "steps": steps_list,
-        "logs": [f"[{datetime.now().strftime('%H:%M:%S')}] Workflow initialized for goal: {goal.strip()}"],
-    }
-    _WORKFLOWS[task_id] = workflow_record
-
     plan_md = [
         f"### 📋 Workflow Plan: `{task_id}`",
         f"**Goal:** {goal.strip()}",
@@ -73,16 +91,35 @@ def create_task_plan(goal: str, proposed_steps: str = "") -> str:
         plan_md.append(f"| {s['step_id']} | {s['title']} | {appr} | `{s['status']}` |")
 
     plan_md.append(f"\nTrack or advance using `get_task_status('{task_id}')` or `verify_task_result('{task_id}', criteria).`")
-    return "\n".join(plan_md)
+    plan_text = "\n".join(plan_md)
+
+    workflow_record = {
+        "task_id": task_id,
+        "owner_hash": owner_hash,
+        "key_hash": owner_hash,
+        "goal": goal.strip(),
+        "created_at": datetime.now().isoformat(),
+        "status": "in_progress",
+        "current_step": 1,
+        "steps": steps_list,
+        "logs": [f"[{datetime.now().strftime('%H:%M:%S')}] Workflow initialized for goal: {goal.strip()}"],
+        "plan": plan_text,
+    }
+    _WORKFLOWS[task_id] = workflow_record
+
+    return TaskPlanResult(task_id, plan_text)
 
 
 def get_task_status(task_id: str) -> str:
     """
     Check the live execution progress, approvals, and logs of an active workflow.
+    Restricted to the caller's own workflows.
     """
+    current_hash = get_current_key_hash()
     wf = _WORKFLOWS.get(task_id)
-    if not wf:
-        return f"Workflow `{task_id}` not found. Available tasks: {', '.join(_WORKFLOWS.keys()) or 'None'}."
+    if not wf or wf.get("key_hash") != current_hash:
+        user_tasks = [tid for tid, item in _WORKFLOWS.items() if item.get("key_hash") == current_hash]
+        return f"Workflow `{task_id}` not found. Available tasks: {', '.join(user_tasks) or 'None'}."
 
     output = [
         f"### 📊 Workflow Status: `{task_id}`",
@@ -109,9 +146,10 @@ def request_task_approval(task_id: str, action_description: str) -> str:
     """
     Pause a workflow step and request human authorization for consequential actions
     (e.g. file deletion, database updates, email sending).
+    Restricted to caller's own workflows.
     """
     wf = _WORKFLOWS.get(task_id)
-    if not wf:
+    if not wf or wf.get("key_hash") != get_current_key_hash():
         return f"Workflow `{task_id}` not found."
 
     wf["status"] = "awaiting_approval"
@@ -127,9 +165,10 @@ def request_task_approval(task_id: str, action_description: str) -> str:
 def approve_task_step(task_id: str, approved: bool = True) -> str:
     """
     Record human approval or rejection for a pending consequential workflow action.
+    Restricted to caller's own workflows.
     """
     wf = _WORKFLOWS.get(task_id)
-    if not wf:
+    if not wf or wf.get("key_hash") != get_current_key_hash():
         return f"Workflow `{task_id}` not found."
 
     if approved:
@@ -145,9 +184,10 @@ def approve_task_step(task_id: str, approved: bool = True) -> str:
 def verify_task_result(task_id: str, verification_criteria: str) -> str:
     """
     Verify completed workflow output against expectations and produce evidence report.
+    Restricted to caller's own workflows.
     """
     wf = _WORKFLOWS.get(task_id)
-    if not wf:
+    if not wf or wf.get("key_hash") != get_current_key_hash():
         return f"Workflow `{task_id}` not found."
 
     # Mark all steps completed if verifying final goal
