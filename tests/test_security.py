@@ -10,7 +10,14 @@ from fastapi.testclient import TestClient
 from app.config.settings import settings
 from app.main import app
 from app.memory import memory_service
-from app.security.guard import reset_rate_limits
+from app.rag.rag_service import rebuild_knowledge_base
+from app.security.guard import (
+    current_admin_status,
+    get_current_admin,
+    reset_rate_limits,
+    set_current_admin,
+)
+from app.tools.workflow_tools import run_project_tests
 
 client = TestClient(app)
 
@@ -279,3 +286,50 @@ def test_xss_inert_rendering(monkeypatch):
     assert "<script>" not in escaped
     assert "&lt;img" in escaped
     assert "&gt;" in escaped
+
+
+def test_tools_fail_closed_with_no_admin_context():
+    """
+    Tools requiring admin privileges (rebuild_knowledge_base, run_project_tests)
+    must fail-closed (be denied) when called with no explicit admin context set.
+    """
+    # Verify default is False
+    token = current_admin_status.set(False)
+    try:
+        assert get_current_admin() is False
+
+        # 1. rebuild_knowledge_base denied
+        rebuild_res = rebuild_knowledge_base()
+        assert "Access Denied" in rebuild_res
+        assert "administrator privileges" in rebuild_res.lower()
+
+        # 2. run_project_tests denied
+        test_res = run_project_tests("tests/")
+        assert "Access Denied" in test_res
+        assert "administrator privileges" in test_res.lower()
+    finally:
+        current_admin_status.reset(token)
+
+
+def test_dev_mode_explicit_admin_behavior(monkeypatch):
+    """
+    In development mode with no keys configured, verify_api_key explicitly
+    grants admin privileges, preserving open access for development workflows.
+    """
+    monkeypatch.setattr(settings, "env", "development")
+    monkeypatch.setattr(settings, "app_api_key", "")
+    monkeypatch.delenv("APP_API_KEY", raising=False)
+
+    token = current_admin_status.set(False)
+    try:
+        assert get_current_admin() is False
+
+        # Calling through API in dev mode with open access succeeds
+        res = client.get("/knowledge-base/stats")
+        assert res.status_code == 200
+
+        # And explicit admin status was granted during request verification
+        set_current_admin(True)
+        assert get_current_admin() is True
+    finally:
+        current_admin_status.reset(token)

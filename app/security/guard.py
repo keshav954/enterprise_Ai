@@ -13,7 +13,7 @@ from fastapi import Header, HTTPException, Request
 from app.config.settings import settings
 from app.tools.workspace_tools import set_current_key_hash
 
-current_admin_status: contextvars.ContextVar[bool] = contextvars.ContextVar("current_admin_status", default=True)
+current_admin_status: contextvars.ContextVar[bool] = contextvars.ContextVar("current_admin_status", default=False)
 
 
 def set_current_admin(is_admin: bool):
