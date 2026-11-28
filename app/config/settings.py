@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     # Security, Auth & CORS
     app_api_key: str = Field(default="", validation_alias="APP_API_KEY")
+    app_admin_keys: str = Field(default="", validation_alias="APP_ADMIN_KEYS")
     api_auth_token: str = Field(default="", validation_alias="API_AUTH_TOKEN")
     allowed_origins: str = Field(
         default="http://localhost:8000,http://127.0.0.1:8000",
@@ -43,6 +44,17 @@ class Settings(BaseSettings):
         if not raw:
             return []
         return [k.strip() for k in raw.split(",") if k.strip()]
+
+    @property
+    def admin_keys(self) -> List[str]:
+        """Returns parsed list of admin API keys from APP_ADMIN_KEYS, or defaults to first key in api_keys."""
+        raw = self.app_admin_keys.strip()
+        if raw:
+            return [k.strip() for k in raw.split(",") if k.strip()]
+        keys = self.api_keys
+        if keys:
+            return [keys[0]]
+        return []
 
     @property
     def effective_rate_limit(self) -> int:

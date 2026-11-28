@@ -97,7 +97,13 @@ def rebuild_knowledge_base() -> str:
     """
     Rebuild the knowledge-base vector index from scratch.
     Call this after adding, editing, or removing files in knowledge_base/.
+    Requires administrator privileges.
     """
+    from app.security.guard import get_current_admin
+
+    if not get_current_admin():
+        return "Access Denied: Rebuilding the knowledge base requires administrator privileges."
+
     result = build_vector_index()
     if result.get("status") == "error":
         return f"Rebuild failed: {result.get('message')}"

@@ -3,11 +3,11 @@ REST API Routes for Knowledge Base (RAG) Management.
 """
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
 from app.rag.document_loader import KNOWLEDGE_BASE_DIR, SUPPORTED_EXTENSIONS
 from app.rag.rag_service import knowledge_base_stats, rebuild_knowledge_base
-from app.security.guard import verify_api_token
+from app.security.guard import verify_admin_key
 
 router = APIRouter(prefix="/knowledge-base", tags=["Knowledge Base"])
 
@@ -40,21 +40,24 @@ def list_documents():
     return {"total": len(docs), "documents": docs}
 
 
-@router.post("/rebuild", dependencies=[Depends(verify_api_token)])
+@router.post("/rebuild", dependencies=[Depends(verify_admin_key)])
 def trigger_rebuild():
     """
     Rebuild the semantic vector index from all files in knowledge_base/.
-    Requires valid API token if security is enabled.
+    Admin-only operation.
     """
     result = rebuild_knowledge_base()
     return {"message": result, "stats": knowledge_base_stats()}
 
 
-@router.post("/upload", dependencies=[Depends(verify_api_token)])
-async def upload_document(file: UploadFile = File(...)):
+@router.post("/upload", dependencies=[Depends(verify_admin_key)])
+async def upload_document(
+    file: UploadFile = File(...),
+    overwrite: bool = Query(False, description="Set to true to overwrite existing file"),
+):
     """
     Upload a new document (.md, .txt, .pdf, .docx, .csv) to the knowledge base and trigger index rebuild.
-    Requires valid API token if security is enabled.
+    Admin-only operation. Returns 409 Conflict if duplicate unless overwrite=true is provided.
     """
     if not file.filename:
         raise HTTPException(status_code=400, detail="Filename must not be empty.")
@@ -69,6 +72,12 @@ async def upload_document(file: UploadFile = File(...)):
 
     safe_filename = file_path.name
     target_path = KNOWLEDGE_BASE_DIR / safe_filename
+
+    if target_path.exists() and not overwrite:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Conflict: Document '{safe_filename}' already exists. Pass overwrite=true to overwrite.",
+        )
 
     KNOWLEDGE_BASE_DIR.mkdir(parents=True, exist_ok=True)
 
