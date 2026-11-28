@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.config.settings import settings
 from app.main import app
-from app.rag.document_loader import KNOWLEDGE_BASE_DIR
+from app.rag import document_loader
 from app.rag.rag_service import rebuild_knowledge_base
 from app.security.guard import set_current_admin
 
@@ -73,7 +73,7 @@ def test_upload_duplicate_without_overwrite_returns_409():
     """Uploading an existing filename without overwrite=true must return 409 Conflict."""
     admin_headers = {"Authorization": f"Bearer {ADMIN_KEY}"}
     existing_file = "company_handbook.md"
-    assert (KNOWLEDGE_BASE_DIR / existing_file).exists()
+    assert (document_loader.KNOWLEDGE_BASE_DIR / existing_file).exists()
 
     payload = io.BytesIO(b"# Modified handbook content\nNew content.")
     res = client.post(
@@ -90,7 +90,7 @@ def test_upload_duplicate_with_overwrite_succeeds(tmp_path):
     """Uploading with overwrite=true by an admin replaces file and returns 200."""
     admin_headers = {"Authorization": f"Bearer {ADMIN_KEY}"}
     test_file_name = "test_overwrite_target.md"
-    test_path = KNOWLEDGE_BASE_DIR / test_file_name
+    test_path = document_loader.KNOWLEDGE_BASE_DIR / test_file_name
     test_path.write_text("# Initial Content\nInitial text.", encoding="utf-8")
 
     try:

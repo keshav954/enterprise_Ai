@@ -43,6 +43,12 @@ def _resolve_data_path(filename: str) -> Optional[Path]:
     ):
         return target
 
+    # Check tests/fixtures as fallback (e.g. for test datasets)
+    fixtures_dir = (PROJECT_ROOT / "tests" / "fixtures").resolve()
+    fixtures_target = (fixtures_dir / clean_str).resolve()
+    if fixtures_target.is_relative_to(fixtures_dir) and fixtures_target.exists() and fixtures_target.is_file():
+        return fixtures_target
+
     # Check knowledge_base as fallback
     kb_dir = (PROJECT_ROOT / "knowledge_base").resolve()
     kb_target = (kb_dir / clean_str).resolve()

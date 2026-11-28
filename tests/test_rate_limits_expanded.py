@@ -33,9 +33,9 @@ def setup_limits(monkeypatch):
 
 def test_heavy_rate_limit_upload(monkeypatch):
     """Uploading files must be limited to RATE_LIMIT_HEAVY_PER_MIN (2/min in test)."""
-    from app.rag.document_loader import KNOWLEDGE_BASE_DIR
+    from app.rag import document_loader
 
-    rate_test_file = KNOWLEDGE_BASE_DIR / "rate_test.md"
+    rate_test_file = document_loader.KNOWLEDGE_BASE_DIR / "rate_test.md"
     try:
         # 1st request
         res1 = client.post(

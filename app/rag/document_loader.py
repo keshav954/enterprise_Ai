@@ -120,7 +120,10 @@ def build_documents() -> list[dict[str, Any]]:
         if ext not in SUPPORTED_EXTENSIONS:
             continue
 
-        rel_source = str(file_path.relative_to(PROJECT_ROOT))
+        try:
+            rel_source = str(file_path.relative_to(PROJECT_ROOT))
+        except ValueError:
+            rel_source = f"knowledge_base/{file_path.name}"
 
         try:
             if ext == ".pdf":

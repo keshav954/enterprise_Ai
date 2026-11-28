@@ -5,6 +5,7 @@ import hashlib
 
 import pytest
 
+from app.tools import workspace_tools
 from app.tools.search_tools import (
     find_workspace_files,
     search_text_in_workspace,
@@ -12,7 +13,6 @@ from app.tools.search_tools import (
     search_workspace_text,
 )
 from app.tools.workspace_tools import (
-    WORKSPACE_DIR,
     copy_workspace_item,
     delete_workspace_file,
     delete_workspace_folder,
@@ -46,7 +46,7 @@ def test_per_user_workspace_isolation():
     set_current_key_hash(hash_a)
     assert get_current_key_hash() == hash_a
     ws_a = get_workspace_dir()
-    assert ws_a == WORKSPACE_DIR / hash_a[:16]
+    assert ws_a == workspace_tools.WORKSPACE_DIR / hash_a[:16]
 
     res_write_a = write_workspace_file("user_a_report.txt", "CONFIDENTIAL USER A DATA")
     assert "Successfully wrote" in res_write_a
@@ -56,7 +56,7 @@ def test_per_user_workspace_isolation():
     # --- User B cannot see, read, search, move, overwrite, or delete User A's file ---
     set_current_key_hash(hash_b)
     ws_b = get_workspace_dir()
-    assert ws_b == WORKSPACE_DIR / hash_b[:16]
+    assert ws_b == workspace_tools.WORKSPACE_DIR / hash_b[:16]
     assert ws_a != ws_b
 
     # List
@@ -147,5 +147,5 @@ def test_dev_default_isolation():
     """Verify unauthenticated / dev_default mode uses workspace/dev_default/."""
     set_current_key_hash("dev_default")
     ws_dev = get_workspace_dir()
-    assert ws_dev == WORKSPACE_DIR / "dev_default"
+    assert ws_dev == workspace_tools.WORKSPACE_DIR / "dev_default"
     assert ws_dev.exists()
