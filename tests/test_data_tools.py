@@ -2,9 +2,8 @@
 Unit tests for AI Data Analyst tool suite.
 """
 
+from app.tools import data_tools
 from app.tools.data_tools import (
-    CHARTS_DIR,
-    REPORTS_DIR,
     analyze_csv_file,
     calculate_data_summary,
     create_data_chart,
@@ -49,7 +48,7 @@ def test_create_data_chart():
     assert "reports/charts/" in res
 
     # Check chart file on disk
-    charts = list(CHARTS_DIR.glob("*.html"))
+    charts = list(data_tools.CHARTS_DIR.glob("*.html"))
     assert len(charts) > 0
 
 
@@ -59,7 +58,7 @@ def test_generate_analysis_report():
     res = generate_analysis_report("monthly_sales.csv", title, findings)
     assert "Report successfully generated" in res
 
-    report_file = REPORTS_DIR / "report_q4_restocking_strategy.md"
+    report_file = data_tools.REPORTS_DIR / "report_q4_restocking_strategy.md"
     assert report_file.exists()
     content = report_file.read_text(encoding="utf-8")
     assert "Cloud Sync Agent" in content
