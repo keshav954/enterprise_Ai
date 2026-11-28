@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
 from app.rag.document_loader import KNOWLEDGE_BASE_DIR, SUPPORTED_EXTENSIONS
 from app.rag.rag_service import knowledge_base_stats, rebuild_knowledge_base
-from app.security.guard import verify_admin_key
+from app.security.guard import heavy_rate_limiter, verify_admin_key
 
 router = APIRouter(prefix="/knowledge-base", tags=["Knowledge Base"])
 
@@ -40,24 +40,24 @@ def list_documents():
     return {"total": len(docs), "documents": docs}
 
 
-@router.post("/rebuild", dependencies=[Depends(verify_admin_key)])
+@router.post("/rebuild", dependencies=[Depends(verify_admin_key), Depends(heavy_rate_limiter)])
 def trigger_rebuild():
     """
     Rebuild the semantic vector index from all files in knowledge_base/.
-    Admin-only operation.
+    Admin-only operation with heavy rate limiting.
     """
     result = rebuild_knowledge_base()
     return {"message": result, "stats": knowledge_base_stats()}
 
 
-@router.post("/upload", dependencies=[Depends(verify_admin_key)])
+@router.post("/upload", dependencies=[Depends(verify_admin_key), Depends(heavy_rate_limiter)])
 async def upload_document(
     file: UploadFile = File(...),
     overwrite: bool = Query(False, description="Set to true to overwrite existing file"),
 ):
     """
     Upload a new document (.md, .txt, .pdf, .docx, .csv) to the knowledge base and trigger index rebuild.
-    Admin-only operation. Returns 409 Conflict if duplicate unless overwrite=true is provided.
+    Admin-only operation with heavy rate limiting. Returns 409 Conflict if duplicate unless overwrite=true is provided.
     """
     if not file.filename:
         raise HTTPException(status_code=400, detail="Filename must not be empty.")

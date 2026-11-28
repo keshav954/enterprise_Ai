@@ -8,7 +8,12 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from app.security.guard import verify_admin_key, verify_api_token
+from app.security.guard import (
+    heavy_rate_limiter,
+    rate_limiter,
+    verify_admin_key,
+    verify_api_token,
+)
 from app.tools.workflow_tools import (
     _WORKFLOWS,
     approve_task_step,
@@ -50,7 +55,7 @@ class DiagnoseRequest(BaseModel):
     test_output: str = Field(..., description="Pytest raw stdout/stderr output")
 
 
-@router.post("/plan", dependencies=[Depends(verify_api_token)])
+@router.post("/plan", dependencies=[Depends(verify_api_token), Depends(rate_limiter)])
 def create_plan(req: CreatePlanRequest):
     """Decompose a goal into verifiable steps with approval gates."""
     result = create_task_plan(goal=req.goal, proposed_steps=req.proposed_steps)
@@ -92,7 +97,7 @@ def get_task(task_id: str):
     }
 
 
-@router.post("/tasks/{task_id}/approval-request", dependencies=[Depends(verify_api_token)])
+@router.post("/tasks/{task_id}/approval-request", dependencies=[Depends(verify_api_token), Depends(rate_limiter)])
 def request_approval(task_id: str, req: ApprovalRequest):
     """Pause a workflow step and request human authorization."""
     if task_id not in _WORKFLOWS:
@@ -101,7 +106,7 @@ def request_approval(task_id: str, req: ApprovalRequest):
     return {"task_id": task_id, "message": msg, "workflow": _WORKFLOWS[task_id]}
 
 
-@router.post("/tasks/{task_id}/approve", dependencies=[Depends(verify_api_token)])
+@router.post("/tasks/{task_id}/approve", dependencies=[Depends(verify_api_token), Depends(rate_limiter)])
 def submit_approval(task_id: str, req: ApprovalDecisionRequest):
     """Record human approval or rejection for a pending action."""
     if task_id not in _WORKFLOWS:
@@ -110,7 +115,7 @@ def submit_approval(task_id: str, req: ApprovalDecisionRequest):
     return {"task_id": task_id, "approved": req.approved, "message": msg, "workflow": _WORKFLOWS[task_id]}
 
 
-@router.post("/tasks/{task_id}/verify", dependencies=[Depends(verify_api_token)])
+@router.post("/tasks/{task_id}/verify", dependencies=[Depends(verify_api_token), Depends(rate_limiter)])
 def verify_workflow(task_id: str, req: VerifyRequest):
     """Verify workflow outputs against criteria and produce an evidence audit."""
     if task_id not in _WORKFLOWS:
@@ -119,14 +124,14 @@ def verify_workflow(task_id: str, req: VerifyRequest):
     return {"task_id": task_id, "message": msg, "workflow": _WORKFLOWS[task_id]}
 
 
-@router.post("/run-tests", dependencies=[Depends(verify_admin_key)])
+@router.post("/run-tests", dependencies=[Depends(verify_admin_key), Depends(heavy_rate_limiter)])
 def trigger_tests(req: TestRunRequest):
     """Safely execute pytest suite in restricted subprocess (admin only)."""
     result = run_project_tests(test_target=req.test_target or "tests/")
     return {"result": result}
 
 
-@router.post("/diagnose-failures")
+@router.post("/diagnose-failures", dependencies=[Depends(rate_limiter)])
 def diagnose_output(req: DiagnoseRequest):
     """Diagnose raw test runner failure outputs."""
     summary = summarize_test_failures(req.test_output)

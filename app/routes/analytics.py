@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from app.security.guard import verify_api_token
+from app.security.guard import rate_limiter, verify_api_token
 from app.tools.data_tools import (
     CHARTS_DIR,
     REPORTS_DIR,
@@ -55,7 +55,7 @@ def list_datasets(request: Request = None):
     return {"total": len(datasets), "datasets": datasets}
 
 
-@router.post("/analyze", dependencies=[Depends(verify_api_token)])
+@router.post("/analyze", dependencies=[Depends(verify_api_token), Depends(rate_limiter)])
 def analyze_dataset(req: AnalyzeRequest, request: Request = None):
     """Run exploratory data analysis on a specified workspace dataset."""
     if request:
@@ -75,7 +75,7 @@ def analyze_dataset(req: AnalyzeRequest, request: Request = None):
     return {"filename": req.filename, "analysis": result}
 
 
-@router.post("/calculate", dependencies=[Depends(verify_api_token)])
+@router.post("/calculate", dependencies=[Depends(verify_api_token), Depends(rate_limiter)])
 def calculate_metric(req: CalculateRequest, request: Request = None):
     """Calculate deterministic summary statistics (Pandas aggregation) on dataset."""
     if request:
