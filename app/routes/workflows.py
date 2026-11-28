@@ -5,7 +5,7 @@ and developer test execution.
 """
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from app.security.guard import (
@@ -24,6 +24,7 @@ from app.tools.workflow_tools import (
     summarize_test_failures,
     verify_task_result,
 )
+from app.tools.workspace_tools import get_current_key_hash, set_current_key_hash
 
 router = APIRouter(prefix="/workflows", tags=["Workflows & Orchestration"])
 
@@ -56,39 +57,56 @@ class DiagnoseRequest(BaseModel):
 
 
 @router.post("/plan", dependencies=[Depends(verify_api_token), Depends(rate_limiter)])
-def create_plan(req: CreatePlanRequest):
+def create_plan(req: CreatePlanRequest, request: Request = None):
     """Decompose a goal into verifiable steps with approval gates."""
-    result = create_task_plan(goal=req.goal, proposed_steps=req.proposed_steps)
-    # Extract newly created task ID from _WORKFLOWS
-    latest_id = list(_WORKFLOWS.keys())[-1] if _WORKFLOWS else None
+    if request:
+        key_hash = getattr(request.state, "key_hash", None)
+        if key_hash:
+            set_current_key_hash(key_hash)
+
+    task_id, plan = create_task_plan(goal=req.goal, proposed_steps=req.proposed_steps)
     return {
-        "task_id": latest_id,
-        "plan": result,
-        "workflow": _WORKFLOWS.get(latest_id),
+        "task_id": task_id,
+        "plan": plan,
+        "workflow": _WORKFLOWS.get(task_id),
     }
 
 
 @router.get("/tasks")
-def list_tasks():
-    """List all tracked workflows and their current status."""
+def list_tasks(request: Request = None):
+    """List all tracked workflows and their current status for the caller."""
+    if request:
+        key_hash = getattr(request.state, "key_hash", None)
+        if key_hash:
+            set_current_key_hash(key_hash)
+
+    current_hash = get_current_key_hash()
     summaries = []
     for tid, wf in _WORKFLOWS.items():
-        summaries.append({
-            "task_id": tid,
-            "goal": wf["goal"],
-            "status": wf["status"],
-            "created_at": wf["created_at"],
-            "total_steps": len(wf.get("steps", [])),
-        })
+        if wf.get("key_hash") == current_hash:
+            summaries.append({
+                "task_id": tid,
+                "goal": wf["goal"],
+                "status": wf["status"],
+                "created_at": wf["created_at"],
+                "total_steps": len(wf.get("steps", [])),
+            })
     return {"total": len(summaries), "tasks": summaries}
 
 
 @router.get("/tasks/{task_id}")
-def get_task(task_id: str):
+def get_task(task_id: str, request: Request = None):
     """Get live details, steps, and audit logs of a workflow."""
+    if request:
+        key_hash = getattr(request.state, "key_hash", None)
+        if key_hash:
+            set_current_key_hash(key_hash)
+
+    current_hash = get_current_key_hash()
     wf = _WORKFLOWS.get(task_id)
-    if not wf:
+    if not wf or wf.get("key_hash") != current_hash:
         raise HTTPException(status_code=404, detail=f"Workflow '{task_id}' not found.")
+
     status_text = get_task_status(task_id)
     return {
         "task_id": task_id,
@@ -98,42 +116,76 @@ def get_task(task_id: str):
 
 
 @router.post("/tasks/{task_id}/approval-request", dependencies=[Depends(verify_api_token), Depends(rate_limiter)])
-def request_approval(task_id: str, req: ApprovalRequest):
+def request_approval(task_id: str, req: ApprovalRequest, request: Request = None):
     """Pause a workflow step and request human authorization."""
-    if task_id not in _WORKFLOWS:
+    if request:
+        key_hash = getattr(request.state, "key_hash", None)
+        if key_hash:
+            set_current_key_hash(key_hash)
+
+    current_hash = get_current_key_hash()
+    wf = _WORKFLOWS.get(task_id)
+    if not wf or wf.get("key_hash") != current_hash:
         raise HTTPException(status_code=404, detail=f"Workflow '{task_id}' not found.")
+
     msg = request_task_approval(task_id, req.action_description)
     return {"task_id": task_id, "message": msg, "workflow": _WORKFLOWS[task_id]}
 
 
 @router.post("/tasks/{task_id}/approve", dependencies=[Depends(verify_api_token), Depends(rate_limiter)])
-def submit_approval(task_id: str, req: ApprovalDecisionRequest):
+def submit_approval(task_id: str, req: ApprovalDecisionRequest, request: Request = None):
     """Record human approval or rejection for a pending action."""
-    if task_id not in _WORKFLOWS:
+    if request:
+        key_hash = getattr(request.state, "key_hash", None)
+        if key_hash:
+            set_current_key_hash(key_hash)
+
+    current_hash = get_current_key_hash()
+    wf = _WORKFLOWS.get(task_id)
+    if not wf or wf.get("key_hash") != current_hash:
         raise HTTPException(status_code=404, detail=f"Workflow '{task_id}' not found.")
+
     msg = approve_task_step(task_id, req.approved)
     return {"task_id": task_id, "approved": req.approved, "message": msg, "workflow": _WORKFLOWS[task_id]}
 
 
 @router.post("/tasks/{task_id}/verify", dependencies=[Depends(verify_api_token), Depends(rate_limiter)])
-def verify_workflow(task_id: str, req: VerifyRequest):
+def verify_workflow(task_id: str, req: VerifyRequest, request: Request = None):
     """Verify workflow outputs against criteria and produce an evidence audit."""
-    if task_id not in _WORKFLOWS:
+    if request:
+        key_hash = getattr(request.state, "key_hash", None)
+        if key_hash:
+            set_current_key_hash(key_hash)
+
+    current_hash = get_current_key_hash()
+    wf = _WORKFLOWS.get(task_id)
+    if not wf or wf.get("key_hash") != current_hash:
         raise HTTPException(status_code=404, detail=f"Workflow '{task_id}' not found.")
+
     msg = verify_task_result(task_id, req.verification_criteria)
     return {"task_id": task_id, "message": msg, "workflow": _WORKFLOWS[task_id]}
 
 
 @router.post("/run-tests", dependencies=[Depends(verify_admin_key), Depends(heavy_rate_limiter)])
-def trigger_tests(req: TestRunRequest):
+def trigger_tests(req: TestRunRequest, request: Request = None):
     """Safely execute pytest suite in restricted subprocess (admin only)."""
+    if request:
+        key_hash = getattr(request.state, "key_hash", None)
+        if key_hash:
+            set_current_key_hash(key_hash)
+
     result = run_project_tests(test_target=req.test_target or "tests/")
     return {"result": result}
 
 
 @router.post("/diagnose-failures", dependencies=[Depends(rate_limiter)])
-def diagnose_output(req: DiagnoseRequest):
+def diagnose_output(req: DiagnoseRequest, request: Request = None):
     """Diagnose raw test runner failure outputs."""
+    if request:
+        key_hash = getattr(request.state, "key_hash", None)
+        if key_hash:
+            set_current_key_hash(key_hash)
+
     summary = summarize_test_failures(req.test_output)
     return {"diagnosis": summary}
 

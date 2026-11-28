@@ -199,6 +199,9 @@ def test_data_tools_charts_and_reports():
 
 
 def test_rag_service_full_mocked(monkeypatch, tmp_path):
+    from app.security.guard import set_current_admin
+
+    set_current_admin(True)
     mock_model = MockEmbeddingModel()
     monkeypatch.setattr(vector_store, "get_embedding_model", lambda: mock_model)
     monkeypatch.setattr(vector_store, "CHROMA_DIR", tmp_path / "chroma")
