@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from app.security.guard import verify_api_token
+from app.security.guard import verify_admin_key, verify_api_token
 from app.tools.workflow_tools import (
     _WORKFLOWS,
     approve_task_step,
@@ -119,9 +119,9 @@ def verify_workflow(task_id: str, req: VerifyRequest):
     return {"task_id": task_id, "message": msg, "workflow": _WORKFLOWS[task_id]}
 
 
-@router.post("/run-tests", dependencies=[Depends(verify_api_token)])
+@router.post("/run-tests", dependencies=[Depends(verify_admin_key)])
 def trigger_tests(req: TestRunRequest):
-    """Safely execute pytest suite in restricted subprocess."""
+    """Safely execute pytest suite in restricted subprocess (admin only)."""
     result = run_project_tests(test_target=req.test_target or "tests/")
     return {"result": result}
 
