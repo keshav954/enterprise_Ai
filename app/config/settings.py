@@ -1,7 +1,10 @@
+import logging
 from typing import List
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -18,13 +21,20 @@ class Settings(BaseSettings):
 
     # Security, Auth & CORS
     app_api_key: str = Field(default="", validation_alias="APP_API_KEY")
+    app_admin_keys: str = Field(default="", validation_alias="APP_ADMIN_KEYS")
     api_auth_token: str = Field(default="", validation_alias="API_AUTH_TOKEN")
     allowed_origins: str = Field(
         default="http://localhost:8000,http://127.0.0.1:8000",
         validation_alias="ALLOWED_ORIGINS",
     )
-    rate_limit_per_min: int = Field(default=30, validation_alias="RATE_LIMIT_PER_MIN")
-    rate_limit_per_minute: int = Field(default=30, validation_alias="RATE_LIMIT_PER_MINUTE")
+    rate_limit_per_min: int = Field(
+        default=30,
+        validation_alias=AliasChoices("RATE_LIMIT_PER_MIN", "RATE_LIMIT_PER_MINUTE"),
+    )
+    rate_limit_heavy_per_min: int = Field(
+        default=5,
+        validation_alias=AliasChoices("RATE_LIMIT_HEAVY_PER_MIN"),
+    )
     max_message_chars: int = Field(default=4000, validation_alias="MAX_MESSAGE_CHARS")
 
     # Database
@@ -39,15 +49,40 @@ class Settings(BaseSettings):
     @property
     def api_keys(self) -> List[str]:
         """Returns parsed list of valid API keys from APP_API_KEY or legacy API_AUTH_TOKEN."""
+        if self.api_auth_token and not self.app_api_key:
+            logger.warning(
+                "DEPRECATION WARNING: 'API_AUTH_TOKEN' is deprecated and will be removed in a future release. "
+                "Please migrate to 'APP_API_KEY'."
+            )
         raw = (self.app_api_key or self.api_auth_token).strip()
         if not raw:
             return []
         return [k.strip() for k in raw.split(",") if k.strip()]
 
     @property
+    def admin_keys(self) -> List[str]:
+        """Returns parsed list of admin API keys from APP_ADMIN_KEYS, or defaults to first key in api_keys."""
+        raw = self.app_admin_keys.strip()
+        if raw:
+            return [k.strip() for k in raw.split(",") if k.strip()]
+        keys = self.api_keys
+        if keys:
+            return [keys[0]]
+        return []
+
+    @property
+    def rate_limit_per_minute(self) -> int:
+        """Backward-compatible alias for rate_limit_per_min."""
+        return self.rate_limit_per_min
+
+    @rate_limit_per_minute.setter
+    def rate_limit_per_minute(self, value: int):
+        self.rate_limit_per_min = value
+
+    @property
     def effective_rate_limit(self) -> int:
         """Returns configured requests per minute limit."""
-        return self.rate_limit_per_min or self.rate_limit_per_minute or 30
+        return self.rate_limit_per_min or 30
 
 
 settings = Settings()

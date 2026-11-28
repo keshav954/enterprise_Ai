@@ -166,18 +166,59 @@ def verify_task_result(task_id: str, verification_criteria: str) -> str:
     )
 
 
+MAX_TEST_OUTPUT_CHARS = 8000
+
+
 def run_project_tests(test_target: str = "tests/") -> str:
     """
     Safely execute Pytest suite in a restricted subprocess and return test summary results.
+    Accepts only paths resolving strictly inside <project>/tests/.
+    Refuses options/flags (starting with '-'), absolute paths, and path traversal ('..').
+    Requires administrator privileges.
+    Capped at 8,000 characters.
     """
-    target = test_target.strip() or "tests/"
-    # Security guard: disallow arbitrary shell injection
-    if any(c in target for c in [";", "&", "|", "`", "$"]):
+    from app.security.guard import get_current_admin
+
+    if not get_current_admin():
+        return "Access Denied: Running project tests requires administrator privileges."
+
+    clean_target = str(test_target).strip() if test_target else "tests/"
+    if not clean_target:
+        clean_target = "tests/"
+
+    # Reject arguments starting with '-' (e.g. '--co', '-p evil')
+    if clean_target.startswith("-"):
+        return "Access Denied: Options and flags are not permitted in test path."
+
+    # Reject explicit absolute paths
+    if (
+        clean_target.startswith("/")
+        or clean_target.startswith("\\")
+        or Path(clean_target).is_absolute()
+        or (len(clean_target) > 1 and clean_target[1] == ":")
+    ):
+        return "Access Denied: Absolute paths are not permitted in test path."
+
+    # Reject shell injection characters
+    if any(c in clean_target for c in [";", "&", "|", "`", "$", "\n", "\r"]):
         return "Access Denied: Invalid characters in test path."
 
+    # Reject path traversal (..)
+    normalized_target = clean_target.replace("\\", "/")
+    if ".." in normalized_target.split("/"):
+        return "Access Denied: Path escapes the tests directory."
+
+    # Ensure target strictly resolves inside <project>/tests/
+    tests_root = (PROJECT_ROOT / "tests").resolve()
+    target_path = (PROJECT_ROOT / normalized_target).resolve()
+
+    if not (target_path == tests_root or target_path.is_relative_to(tests_root)):
+        return "Access Denied: Test path must resolve inside the tests/ directory."
+
     try:
+        rel_target = str(target_path.relative_to(PROJECT_ROOT))
         proc = subprocess.run(
-            [sys.executable, "-m", "pytest", target, "-q", "--tb=short"],
+            [sys.executable, "-m", "pytest", rel_target, "-q", "--tb=short"],
             cwd=str(PROJECT_ROOT),
             capture_output=True,
             text=True,
@@ -188,11 +229,18 @@ def run_project_tests(test_target: str = "tests/") -> str:
         code = proc.returncode
 
         status_label = "PASSED" if code == 0 else "FAILED"
+        raw_output = stdout or stderr or "No output."
+        if len(raw_output) > MAX_TEST_OUTPUT_CHARS:
+            raw_output = (
+                raw_output[:MAX_TEST_OUTPUT_CHARS]
+                + f"\n... [Truncated: output exceeded {MAX_TEST_OUTPUT_CHARS} characters]"
+            )
+
         return (
             f"### Pytest Execution Results ({status_label})\n"
-            f"- **Target:** `{target}`\n"
+            f"- **Target:** `{clean_target}`\n"
             f"- **Exit Code:** {code}\n\n"
-            f"```text\n{stdout or stderr or 'No output.'}\n```"
+            f"```text\n{raw_output}\n```"
         )
     except subprocess.TimeoutExpired:
         return "Pytest execution timed out after 60 seconds."

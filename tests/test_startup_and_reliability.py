@@ -17,9 +17,9 @@ from app.tools.code_tools import read_workspace_lines, replace_text_in_file
 from app.tools.data_tools import _resolve_data_path
 from app.tools.workspace_tools import (
     MAX_FILE_BYTES,
-    WORKSPACE_DIR,
     append_workspace_file,
     delete_workspace_file,
+    get_workspace_dir,
     read_workspace_file,
     write_workspace_file,
 )
@@ -197,7 +197,7 @@ def test_symlink_escape_rejection(tmp_path):
     outside_file = tmp_path / "outside_target.txt"
     outside_file.write_text("Top Secret Data Outside Sandbox", encoding="utf-8")
 
-    link_path = WORKSPACE_DIR / "symlink_escape_test.txt"
+    link_path = get_workspace_dir() / "symlink_escape_test.txt"
     if link_path.exists():
         link_path.unlink()
 
@@ -232,7 +232,7 @@ def test_file_size_limits_1mb(tmp_path):
     """
     Workspace tools must cap reads and writes at 1 MB.
     """
-    test_large_file = WORKSPACE_DIR / "test_too_large.txt"
+    test_large_file = get_workspace_dir() / "test_too_large.txt"
     try:
         # Create a file just over 1 MB
         content = "X" * (MAX_FILE_BYTES + 100)

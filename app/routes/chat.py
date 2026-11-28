@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi import Path as APIPath
 
 from app.models.chat_models import ChatRequest
-from app.security.guard import rate_limiter
+from app.security.guard import is_admin_request, rate_limiter, set_current_admin
 from app.services.gemini_service import (
     clear_session,
     get_session_history,
@@ -12,6 +12,7 @@ from app.services.gemini_service import (
     send_message,
 )
 from app.tools.company_tools import TOOLS
+from app.tools.workspace_tools import set_current_key_hash
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,9 @@ router = APIRouter()
 def chat(request: ChatRequest, req: Request):
     req_id = getattr(req.state, "request_id", "unknown")
     key_hash = getattr(req.state, "key_hash", "")
+    set_current_key_hash(key_hash)
+    is_admin = is_admin_request(req)
+    set_current_admin(is_admin)
     try:
         return send_message(
             message=request.message,

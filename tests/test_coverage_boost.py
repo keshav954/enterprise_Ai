@@ -27,7 +27,6 @@ from app.tools.search_tools import (
     search_workspace_text,
 )
 from app.tools.workspace_tools import (
-    WORKSPACE_DIR,
     append_workspace_file,
     copy_workspace_item,
     count_workspace_files,
@@ -35,6 +34,7 @@ from app.tools.workspace_tools import (
     delete_workspace_file,
     delete_workspace_folder,
     get_file_information,
+    get_workspace_dir,
     list_workspace_files,
     move_workspace_item,
     read_workspace_file,
@@ -48,10 +48,11 @@ from tests.test_rag import MockEmbeddingModel
 
 @pytest.fixture(autouse=True)
 def clean_workspace():
-    # Setup test file
-    test_file = WORKSPACE_DIR / "cov_test.txt"
+    # Setup test file in current user's workspace
+    ws = get_workspace_dir()
+    test_file = ws / "cov_test.txt"
     test_file.write_text("Line 1: Alpha\nLine 2: Beta target\nLine 3: Gamma\n", encoding="utf-8")
-    test_py = WORKSPACE_DIR / "cov_test.py"
+    test_py = ws / "cov_test.py"
     test_py.write_text("print('python test')", encoding="utf-8")
     yield
     # Cleanup

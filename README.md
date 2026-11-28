@@ -50,14 +50,29 @@ A production-ready, multidomain agentic AI platform that serves as a general-pur
 - **Human-in-the-Loop Safeguards:** Consequential actions (file overwrites, database mutations, purchase orders) trigger approval pauses until explicitly granted by a human reviewer.
 - **Developer Execution Tools:** Restricted subprocess test runner (`run_project_tests`) and intelligent failure diagnosis (`summarize_test_failures`).
 
-### 4. Enterprise Security & Hardened Architecture
-- **API Key Authentication (`APP_API_KEY`):** Constant-time comparison (`secrets.compare_digest`) supporting comma-separated authorized keys. Required header: `Authorization: Bearer <key>` on all routes except `GET /health` and static files. If `ENV=production` and no key is configured, the server strictly refuses to start.
+### 4. Enterprise Security & Multi-Tenant Hardening
+- **API Key Authentication (`APP_API_KEY`):** Constant-time comparison (`secrets.compare_digest`) supporting comma-separated authorized keys. Required header: `Authorization: Bearer <key>` on all routes except `GET /health` and static files. Production startup validation enforces strong keys (min 24 chars, non-placeholder, non-empty); development mode defaults to isolated `"dev_default"`.
+- **Per-User Workspace Isolation:** Each API key operates inside an isolated sandbox directory (`workspace/<key_hash[:16]>/`). Callers cannot inspect, read, overwrite, search, or delete another user's files. Path traversal (`..`), absolute paths, and sandbox root modifications (`.` / delete / rename) are blocked.
+- **Admin Access Control (`APP_ADMIN_KEYS`):** Privileged operations are restricted to keys specified in `APP_ADMIN_KEYS` (or the primary `APP_API_KEY` if none explicitly set). Non-admin keys receive `403 Forbidden` on knowledge base uploads (`POST /knowledge-base/upload`), index rebuilds (`POST /knowledge-base/rebuild`), test runs (`POST /workflows/run-tests`), and corresponding agent tools (`rebuild_knowledge_base`, `run_project_tests`).
+- **Conflict Prevention on Uploads:** Uploading duplicate files requires an explicit `?overwrite=true` query parameter, otherwise returning `409 Conflict`.
 - **Caller Session Isolation:** Every chat session is scoped to the sha256 hash of the caller's API key in SQLite and memory. `/sessions` lists only the caller's sessions; cross-session read or deletion attempts return `404 Not Found`.
+- **Tiered Rate Limiting:** Sliding-window rate limiters per API key returning HTTP `429 Too Many Requests` with dynamic `Retry-After` header:
+  - Standard routes (`RATE_LIMIT_PER_MIN`, default 60): chat, analytics profiling, task workflows.
+  - Resource-intensive routes (`RATE_LIMIT_HEAVY_PER_MIN`, default 5): document uploads, vector rebuilds, project test runs.
+- **Restricted Test Subprocess:** `run_project_tests` strictly accepts relative paths resolving inside `<project>/tests/`, rejecting CLI flag injection (`-*`), absolute paths, and traversal segments. Output is capped at 8,000 characters with a strict 60-second execution timeout.
 - **CORS Hardening (`ALLOWED_ORIGINS`):** Origins configured via comma-separated list. Wildcard `*` is strictly forbidden from combining with `allow_credentials=True`.
-- **Pydantic Request Validation:** Message constrained to 1..4000 characters (`MAX_MESSAGE_CHARS`), `session_id` strictly validated against `^[A-Za-z0-9_-]{8,64}$`.
-- **Per-Key Rate Limiting (`RATE_LIMIT_PER_MIN`):** Sliding-window rate limiting per API key returning HTTP `429 Too Many Requests` with dynamic `Retry-After` header.
+- **Subresource Integrity (SRI) & XSS Protection:** Web dashboard uses DOMPurify sanitization and enforces SRI sha384 hashes with `crossorigin="anonymous"` on all CDN assets.
 - **Request-ID Tracing & Safe Structured Logging:** Middleware assigns a unique `X-Request-ID` to every request. Unhandled exceptions are logged with full stack traces on the server while returning generic sanitized messages (`Internal Server Error. Request ID: ...`) to clients. Sensitive keys and message bodies are never logged.
-- **Dashboard & XSS Protection:** Static web dashboard prompts for the API key, stores it in `sessionStorage`, transmits `Authorization: Bearer <key>` on all requests, and sanitizes all dynamic message and tool output using **DOMPurify**.
+
+### Security Model
+| Layer | Defense Mechanism | Scope |
+|---|---|---|
+| **Identity & Auth** | Constant-time bearer token check, production key strength audit | All protected endpoints |
+| **Authorization** | Role-based RBAC (`APP_ADMIN_KEYS`) | KB mutations, test executions |
+| **Workspace Sandboxing** | ContextVar-scoped folder isolation (`workspace/<hash[:16]>/`) | All file, code, and search tools |
+| **Abuse Mitigation** | Dual-tier sliding window rate limits (`RATE_LIMIT_PER_MIN`, `RATE_LIMIT_HEAVY_PER_MIN`) | Per API key hash |
+| **Execution Sandbox** | Whitelisted pytest paths inside `tests/`, flag denial, 60s timeout | Developer test runner |
+| **Web & Client** | DOMPurify HTML sanitization, SRI CDN integrity, CORS lockdown | Browser dashboard |
 
 ### 5. Reliability, Startup Performance & Tool Safety
 - **Lazy Initialization:** App starts in milliseconds even without a `GEMINI_API_KEY` configured. `GET /health` reports `gemini_configured=false`; `/chat` returns HTTP 503 Service Unavailable with a clear resolution message.
@@ -139,8 +154,8 @@ Open your browser to:
 |---|---|---|
 | `GET` | `/knowledge-base/stats` | Document, chunk, and embedding model statistics |
 | `GET` | `/knowledge-base/documents` | List stored files with size and modification date |
-| `POST` | `/knowledge-base/upload` | Upload `.md`, `.txt`, `.pdf`, `.docx`, or `.csv` and trigger auto-index |
-| `POST` | `/knowledge-base/rebuild` | Force semantic vector store rebuild |
+| `POST` | `/knowledge-base/upload` | **[Admin Only]** Upload `.md`, `.txt`, `.pdf`, `.docx`, or `.csv` (requires `?overwrite=true` for duplicates) |
+| `POST` | `/knowledge-base/rebuild` | **[Admin Only]** Force semantic vector store rebuild |
 
 ### Analytics & Data Intelligence
 | Method | Endpoint | Description |
@@ -160,7 +175,7 @@ Open your browser to:
 | `GET` | `/workflows/tasks/{id}` | Live workflow execution logs and step breakdown |
 | `POST` | `/workflows/tasks/{id}/approve` | Submit human approval decision (`approved: true/false`) |
 | `POST` | `/workflows/tasks/{id}/verify` | Verify task deliverables against criteria |
-| `POST` | `/workflows/run-tests` | Run pytest test runner in restricted subprocess |
+| `POST` | `/workflows/run-tests` | **[Admin Only]** Run pytest test runner in restricted subprocess |
 | `POST` | `/workflows/diagnose-failures` | Analyze pytest failure stack traces |
 
 ---

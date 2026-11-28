@@ -48,12 +48,87 @@ logger = logging.getLogger(__name__)
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
+PLACEHOLDER_SUBSTRINGS = ["your_", "change", "example", "secret_api_key"]
+
+
+def validate_startup_security(current_settings=None):
+    """
+    Validates startup configuration and security guards.
+    - Open access (no keys) is strictly prohibited unless ENV is explicitly 'development'.
+    - In production, refuses to run if any API key is empty, shorter than 24 characters,
+      or contains placeholder patterns ('your_', 'change', 'example', 'secret_api_key').
+    - In development, logs a loud warning for open access or insecure keys.
+    """
+    s = current_settings or settings
+    env = s.env.strip().lower()
+    is_prod = env == "production"
+    valid_keys = s.api_keys
+
+    # Guard 1: Open access (no keys) must only be allowed when ENV is explicitly "development"
+    if not valid_keys:
+        if is_prod:
+            raise RuntimeError("Production mode requires APP_API_KEY to be configured.")
+        if env != "development":
+            raise RuntimeError(
+                f"Open access (no API keys configured) is forbidden in '{s.env}' mode. "
+                "Open access is only permitted when ENV is explicitly 'development'."
+            )
+        logger.warning(
+            "⚠️ SECURITY WARNING: Server is running with open access (no API keys configured). "
+            "Anyone on your network can access endpoints. Configure APP_API_KEY for production!",
+            extra={"request_id": "startup"},
+        )
+        return
+
+    # Check all configured API keys (and admin keys if provided)
+    all_keys = list(valid_keys)
+    if s.app_admin_keys:
+        for ak in s.admin_keys:
+            if ak not in all_keys:
+                all_keys.append(ak)
+
+    for key in all_keys:
+        stripped_key = key.strip()
+        if not stripped_key:
+            if is_prod:
+                raise RuntimeError("Production API key cannot be empty.")
+            logger.warning(
+                "⚠️ SECURITY WARNING: Configured API key is empty.",
+                extra={"request_id": "startup"},
+            )
+            continue
+
+        if len(stripped_key) < 24:
+            msg = f"API key '{stripped_key[:6]}...' is shorter than 24 characters (length {len(stripped_key)})."
+            if is_prod:
+                raise RuntimeError(
+                    f"Production API key must be at least 24 characters long: {msg} "
+                    'Generate a safe key using python -c "import secrets; print(secrets.token_urlsafe(32))".'
+                )
+            logger.warning(
+                f"⚠️ SECURITY WARNING: {msg} Keys should be at least 24 characters in production.",
+                extra={"request_id": "startup"},
+            )
+
+        key_lower = stripped_key.lower()
+        for placeholder in PLACEHOLDER_SUBSTRINGS:
+            if placeholder in key_lower:
+                msg = f"API key '{stripped_key[:10]}...' contains placeholder pattern '{placeholder}'."
+                if is_prod:
+                    raise RuntimeError(
+                        f"Insecure placeholder API key detected in production: {msg} "
+                        "Please configure a cryptographically random secret key."
+                    )
+                logger.warning(
+                    f'⚠️ SECURITY WARNING: {msg} Generate a safe key using python -c "import secrets; print(secrets.token_urlsafe(32))".',
+                    extra={"request_id": "startup"},
+                )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup / shutdown lifecycle."""
-    # Production guard: Refuse to start if ENV=production and no API key is configured
-    if settings.env.lower() == "production" and not settings.api_keys:
-        raise RuntimeError("Production mode requires APP_API_KEY to be configured.")
+    validate_startup_security()
 
     # Production guard: Refuse to run GEMINI_FAKE in production
     is_fake = settings.gemini_fake or os.getenv("GEMINI_FAKE", "").lower() in ("1", "true", "yes")

@@ -1,4 +1,4 @@
-from app.tools.workspace_tools import SENSITIVE_FILES, WORKSPACE_DIR
+from app.tools.workspace_tools import SENSITIVE_FILES, get_workspace_dir
 
 
 def search_workspace_files(keyword: str):
@@ -8,8 +8,9 @@ def search_workspace_files(keyword: str):
     try:
         matches = []
         keyword = keyword.lower()
-        resolved_workspace = WORKSPACE_DIR.resolve()
-        for path in WORKSPACE_DIR.rglob("*"):
+        ws = get_workspace_dir()
+        resolved_workspace = ws.resolve()
+        for path in ws.rglob("*"):
             if path.name.startswith(".") or "venv" in path.parts or "__pycache__" in path.parts:
                 continue
             if path.name in SENSITIVE_FILES:
@@ -23,9 +24,9 @@ def search_workspace_files(keyword: str):
 
             if keyword in path.name.lower():
                 if path.is_dir():
-                    matches.append(f"Directory: {path.relative_to(WORKSPACE_DIR)}")
+                    matches.append(f"Directory: {path.relative_to(ws)}")
                 else:
-                    matches.append(f"File: {path.relative_to(WORKSPACE_DIR)}")
+                    matches.append(f"File: {path.relative_to(ws)}")
 
         if not matches:
             return "No matching files found."
@@ -40,8 +41,9 @@ def search_text_in_workspace(text: str):
     """
     try:
         matches = []
-        resolved_workspace = WORKSPACE_DIR.resolve()
-        for path in WORKSPACE_DIR.rglob("*"):
+        ws = get_workspace_dir()
+        resolved_workspace = ws.resolve()
+        for path in ws.rglob("*"):
             if not path.is_file() or path.name in SENSITIVE_FILES:
                 continue
             if path.name.startswith(".") or "venv" in path.parts or "__pycache__" in path.parts:
@@ -58,7 +60,7 @@ def search_text_in_workspace(text: str):
                     for line_number, line in enumerate(f, start=1):
                         if text.lower() in line.lower():
                             matches.append(
-                                f"{path.relative_to(WORKSPACE_DIR)} (Line {line_number}): {line.strip()}"
+                                f"{path.relative_to(ws)} (Line {line_number}): {line.strip()}"
                             )
             except Exception:
                 continue
@@ -76,8 +78,9 @@ def search_workspace_text(text: str):
     """
     results = []
     try:
-        resolved_workspace = WORKSPACE_DIR.resolve()
-        for file in WORKSPACE_DIR.rglob("*"):
+        ws = get_workspace_dir()
+        resolved_workspace = ws.resolve()
+        for file in ws.rglob("*"):
             if not file.is_file() or file.name in SENSITIVE_FILES:
                 continue
             if file.name.startswith(".") or "venv" in file.parts or "__pycache__" in file.parts:
@@ -93,7 +96,7 @@ def search_workspace_text(text: str):
                 with open(file, "r", encoding="utf-8", errors="replace") as f:
                     for line_number, line in enumerate(f, start=1):
                         if text.lower() in line.lower():
-                            relative = file.relative_to(WORKSPACE_DIR)
+                            relative = file.relative_to(ws)
                             results.append(f"{relative} : Line {line_number}\n{line.strip()}")
             except Exception:
                 continue
@@ -111,8 +114,9 @@ def find_workspace_files(pattern: str):
     """
     try:
         matches = []
-        resolved_workspace = WORKSPACE_DIR.resolve()
-        for item in WORKSPACE_DIR.rglob("*"):
+        ws = get_workspace_dir()
+        resolved_workspace = ws.resolve()
+        for item in ws.rglob("*"):
             if not item.is_file() or item.name in SENSITIVE_FILES:
                 continue
             if item.name.startswith(".") or "venv" in item.parts or "__pycache__" in item.parts:
@@ -125,7 +129,7 @@ def find_workspace_files(pattern: str):
                     continue
 
             if pattern.lower() in item.name.lower():
-                matches.append(str(item.relative_to(WORKSPACE_DIR)))
+                matches.append(str(item.relative_to(ws)))
 
         if not matches:
             return f"No files found matching '{pattern}'."

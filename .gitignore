@@ -50,3 +50,11 @@ htmlcov/
 # Generated reports & charts from test runs
 reports/report_*.md
 reports/charts/*.html
+
+# Test-generated files in knowledge base
+knowledge_base/test_policy_doc.md
+
+# Per-user workspace isolation folders
+workspace/*
+!workspace/.gitkeep
+!workspace/operations_tasks.csv

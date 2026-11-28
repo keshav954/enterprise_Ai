@@ -6,7 +6,7 @@ import io
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.rag.document_loader import KNOWLEDGE_BASE_DIR
+from app.rag import document_loader
 
 client = TestClient(app)
 
@@ -44,7 +44,7 @@ def test_upload_document_invalid_extension():
 
 def test_upload_document_valid():
     test_filename = "test_policy_doc.md"
-    test_file_path = KNOWLEDGE_BASE_DIR / test_filename
+    test_file_path = document_loader.KNOWLEDGE_BASE_DIR / test_filename
     if test_file_path.exists():
         test_file_path.unlink()
 

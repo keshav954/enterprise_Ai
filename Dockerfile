@@ -42,6 +42,7 @@ FROM python:3.13-slim AS runner
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    ENV=production \
     PATH="/opt/venv/bin:$PATH" \
     HF_HOME=/app/.cache/huggingface \
     SENTENCE_TRANSFORMERS_HOME=/app/.cache/torch/sentence_transformers \

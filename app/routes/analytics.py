@@ -4,11 +4,11 @@ Supports inspecting datasets, generating calculations, and retrieving reports/ch
 """
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from app.security.guard import verify_api_token
+from app.security.guard import rate_limiter, verify_api_token
 from app.tools.data_tools import (
     CHARTS_DIR,
     REPORTS_DIR,
@@ -16,7 +16,7 @@ from app.tools.data_tools import (
     analyze_excel_file,
     calculate_data_summary,
 )
-from app.tools.workspace_tools import WORKSPACE_DIR
+from app.tools.workspace_tools import get_workspace_dir, set_current_key_hash
 
 router = APIRouter(prefix="/analytics", tags=["Analytics & Data Intelligence"])
 
@@ -33,12 +33,18 @@ class CalculateRequest(BaseModel):
 
 
 @router.get("/datasets")
-def list_datasets():
+def list_datasets(request: Request = None):
     """List all CSV and Excel datasets available in workspace."""
-    WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
+    if request:
+        key_hash = getattr(request.state, "key_hash", None)
+        if key_hash:
+            set_current_key_hash(key_hash)
+
+    ws = get_workspace_dir()
+    ws.mkdir(parents=True, exist_ok=True)
     datasets = []
     for ext in ["*.csv", "*.xlsx", "*.xls"]:
-        for f in WORKSPACE_DIR.glob(ext):
+        for f in ws.glob(ext):
             stat = f.stat()
             datasets.append({
                 "filename": f.name,
@@ -49,9 +55,13 @@ def list_datasets():
     return {"total": len(datasets), "datasets": datasets}
 
 
-@router.post("/analyze", dependencies=[Depends(verify_api_token)])
-def analyze_dataset(req: AnalyzeRequest):
+@router.post("/analyze", dependencies=[Depends(verify_api_token), Depends(rate_limiter)])
+def analyze_dataset(req: AnalyzeRequest, request: Request = None):
     """Run exploratory data analysis on a specified workspace dataset."""
+    if request:
+        key_hash = getattr(request.state, "key_hash", None)
+        if key_hash:
+            set_current_key_hash(key_hash)
     suffix = Path(req.filename).suffix.lower()
     if suffix == ".csv":
         result = analyze_csv_file(req.filename)
@@ -65,9 +75,13 @@ def analyze_dataset(req: AnalyzeRequest):
     return {"filename": req.filename, "analysis": result}
 
 
-@router.post("/calculate", dependencies=[Depends(verify_api_token)])
-def calculate_metric(req: CalculateRequest):
+@router.post("/calculate", dependencies=[Depends(verify_api_token), Depends(rate_limiter)])
+def calculate_metric(req: CalculateRequest, request: Request = None):
     """Calculate deterministic summary statistics (Pandas aggregation) on dataset."""
+    if request:
+        key_hash = getattr(request.state, "key_hash", None)
+        if key_hash:
+            set_current_key_hash(key_hash)
     result = calculate_data_summary(
         filename=req.filename,
         group_by_column=req.group_by,
