@@ -50,3 +50,9 @@ htmlcov/
 # Generated reports & charts from test runs
 reports/report_*.md
 reports/charts/*.html
+
+# Per-user workspace isolation folders
+workspace/*
+!workspace/.gitkeep
+!workspace/monthly_sales.csv
+!workspace/operations_tasks.csv

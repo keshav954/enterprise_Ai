@@ -12,6 +12,7 @@ from app.services.gemini_service import (
     send_message,
 )
 from app.tools.company_tools import TOOLS
+from app.tools.workspace_tools import set_current_key_hash
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ router = APIRouter()
 def chat(request: ChatRequest, req: Request):
     req_id = getattr(req.state, "request_id", "unknown")
     key_hash = getattr(req.state, "key_hash", "")
+    set_current_key_hash(key_hash)
     try:
         return send_message(
             message=request.message,

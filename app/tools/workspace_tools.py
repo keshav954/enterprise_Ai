@@ -1,12 +1,52 @@
+import contextvars
 import shutil
 from datetime import datetime
 from pathlib import Path
 
-# Sandboxed workspace directory (user-facing files only —
+# Base workspace directory (user-facing files only —
 # the AI agent cannot access the app's own source code or escape sandbox)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 WORKSPACE_DIR = PROJECT_ROOT / "workspace"
 WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
+
+# ContextVar for per-user workspace isolation
+current_key_hash: contextvars.ContextVar[str] = contextvars.ContextVar("current_key_hash", default="dev_default")
+
+
+def set_current_key_hash(key_hash: str):
+    """Sets the caller's key hash in contextvars for per-user workspace isolation."""
+    return current_key_hash.set(key_hash or "dev_default")
+
+
+def get_current_key_hash() -> str:
+    """Gets the caller's key hash from contextvars."""
+    return current_key_hash.get() or "dev_default"
+
+
+def get_workspace_dir() -> Path:
+    """
+    Returns the sandboxed workspace directory for the current caller.
+    Each API key gets workspace/<first 16 chars of key_hash>/.
+    Created on first use.
+    """
+    raw_hash = current_key_hash.get() or "dev_default"
+    subfolder = raw_hash[:16]
+    user_workspace = WORKSPACE_DIR / subfolder
+    user_workspace.mkdir(parents=True, exist_ok=True)
+
+    # Seed initial datasets for dev_default if present in base workspace
+    if subfolder == "dev_default":
+        for seed_file in ["monthly_sales.csv", "operations_tasks.csv"]:
+            base_seed = WORKSPACE_DIR / seed_file
+            target_seed = user_workspace / seed_file
+            if base_seed.exists() and not target_seed.exists():
+                try:
+                    shutil.copy2(base_seed, target_seed)
+                except Exception:
+                    pass
+
+    return user_workspace
+
 
 # Files that AI is NOT allowed to access
 SENSITIVE_FILES = {
@@ -23,12 +63,13 @@ MAX_FILE_BYTES = 1024 * 1024
 
 def safe_workspace_path(path_str: str) -> Path:
     """
-    Validates that a path is safe and strictly contained within WORKSPACE_DIR.
+    Validates that a path is safe and strictly contained within the user's workspace.
     Rejects:
     - Empty paths
     - Absolute paths (leading slashes, Windows drive letters, Path.is_absolute())
     - Path traversal attacks (..)
-    - Symlinks that escape WORKSPACE_DIR
+    - Sandbox root paths (., ./)
+    - Symlinks that escape the user's workspace
     - Sensitive configuration / secret files
     """
     if not path_str or not str(path_str).strip():
@@ -47,12 +88,22 @@ def safe_workspace_path(path_str: str) -> Path:
 
     # Cross-platform normalization: reject .. path traversal attempts regardless of \ or /
     normalized_str = clean_str.replace("\\", "/")
+    parts = [p for p in normalized_str.split("/") if p and p != "."]
     if ".." in normalized_str.split("/"):
         raise PermissionError("Access Denied: Path escapes the sandboxed workspace.")
 
-    resolved_workspace = WORKSPACE_DIR.resolve()
-    target_path = WORKSPACE_DIR / normalized_str
+    # Sandbox root guard: refuse direct access/deletion/rename of workspace root (.)
+    if normalized_str in (".", "./", ".\\") or not parts:
+        raise PermissionError("Access Denied: Sandbox root directory cannot be modified or accessed directly.")
+
+    ws = get_workspace_dir()
+    resolved_workspace = ws.resolve()
+    target_path = ws / normalized_str
     resolved_target = target_path.resolve()
+
+    # Reject direct references that resolve to the sandbox root itself
+    if resolved_target == resolved_workspace:
+        raise PermissionError("Access Denied: Sandbox root directory cannot be modified or accessed directly.")
 
     # Check path traversal
     if not resolved_target.is_relative_to(resolved_workspace):
@@ -60,7 +111,7 @@ def safe_workspace_path(path_str: str) -> Path:
 
     # Check for symlink escapes along all components
     curr = target_path
-    while curr != WORKSPACE_DIR and curr.parent != curr:
+    while curr != ws and curr.parent != curr:
         if curr.is_symlink():
             if not curr.resolve().is_relative_to(resolved_workspace):
                 raise PermissionError("Access Denied: Symlink escapes workspace boundary.")
@@ -78,8 +129,9 @@ def list_workspace_files():
     Lists all files and folders in the workspace.
     """
     files = []
-    resolved_workspace = WORKSPACE_DIR.resolve()
-    for item in WORKSPACE_DIR.iterdir():
+    ws = get_workspace_dir()
+    resolved_workspace = ws.resolve()
+    for item in ws.iterdir():
         if item.name.startswith("."):
             continue
         if item.name in ["venv", "__pycache__"]:
@@ -283,8 +335,9 @@ def workspace_tree():
     Displays the workspace tree.
     """
     lines = []
-    resolved_workspace = WORKSPACE_DIR.resolve()
-    for path in sorted(WORKSPACE_DIR.rglob("*")):
+    ws = get_workspace_dir()
+    resolved_workspace = ws.resolve()
+    for path in sorted(ws.rglob("*")):
         if path.name.startswith(".") or "venv" in path.parts or "__pycache__" in path.parts:
             continue
         if path.is_symlink():
@@ -293,7 +346,7 @@ def workspace_tree():
                     continue
             except Exception:
                 continue
-        level = len(path.relative_to(WORKSPACE_DIR).parts)
+        level = len(path.relative_to(ws).parts)
         indent = "    " * (level - 1)
         prefix = "📁" if path.is_dir() else "📄"
         lines.append(f"{indent}{prefix} {path.name}")
@@ -307,9 +360,10 @@ def workspace_summary():
     files = 0
     folders = 0
     extensions = {}
-    resolved_workspace = WORKSPACE_DIR.resolve()
+    ws = get_workspace_dir()
+    resolved_workspace = ws.resolve()
 
-    for path in WORKSPACE_DIR.rglob("*"):
+    for path in ws.rglob("*"):
         if path.name.startswith(".") or "venv" in path.parts or "__pycache__" in path.parts:
             continue
         if path.is_symlink():
@@ -343,9 +397,10 @@ def get_file_information(filename: str):
             return "File not found."
 
         stat = target.stat()
+        ws = get_workspace_dir()
         return {
             "name": target.name,
-            "relative_path": str(target.relative_to(WORKSPACE_DIR.resolve())),
+            "relative_path": str(target.relative_to(ws.resolve())),
             "absolute_path": str(target),
             "size_bytes": stat.st_size,
             "created": datetime.fromtimestamp(stat.st_ctime).isoformat(),
@@ -363,8 +418,9 @@ def count_workspace_files():
     """
     files = 0
     folders = 0
-    resolved_workspace = WORKSPACE_DIR.resolve()
-    for item in WORKSPACE_DIR.rglob("*"):
+    ws = get_workspace_dir()
+    resolved_workspace = ws.resolve()
+    for item in ws.rglob("*"):
         if item.name.startswith(".") or "venv" in item.parts or "__pycache__" in item.parts:
             continue
         if item.is_symlink():

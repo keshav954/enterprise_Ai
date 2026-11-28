@@ -24,6 +24,7 @@ from app.config.settings import settings
 from app.memory import memory_service
 from app.prompts.system_prompt import SYSTEM_PROMPT
 from app.tools.company_tools import TOOLS
+from app.tools.workspace_tools import set_current_key_hash
 
 # Load environment variables
 load_dotenv()
@@ -117,6 +118,9 @@ def send_message(
         # Verify session isolation: reject cross-session access
         if session_id in session_owners and key_hash and session_owners[session_id] != key_hash:
             raise HTTPException(status_code=404, detail="Session not found.")
+
+    if key_hash:
+        set_current_key_hash(key_hash)
 
     # Check database ownership for existing session
     past_history = memory_service.get_history(session_id, key_hash=key_hash)

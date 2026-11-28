@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 from fastapi import Header, HTTPException, Request
 
 from app.config.settings import settings
+from app.tools.workspace_tools import set_current_key_hash
 
 # In-memory sliding window rate limiter: key_hash/client_ip -> list of timestamps
 _rate_limits: Dict[str, List[float]] = defaultdict(list)
@@ -35,6 +36,7 @@ def verify_api_key(
         # Development mode without keys configured: allow open access with default dev hash
         dev_hash = "dev_default"
         request.state.key_hash = dev_hash
+        set_current_key_hash(dev_hash)
         return dev_hash
 
     if not authorization or not authorization.startswith("Bearer "):
@@ -57,6 +59,7 @@ def verify_api_key(
     key_hash = hashlib.sha256(provided_key.encode("utf-8")).hexdigest()
     request.state.key_hash = key_hash
     request.state.api_key = provided_key
+    set_current_key_hash(key_hash)
     return key_hash
 
 

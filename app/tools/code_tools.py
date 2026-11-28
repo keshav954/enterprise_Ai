@@ -1,6 +1,6 @@
 from app.tools.workspace_tools import (
     MAX_FILE_BYTES,
-    WORKSPACE_DIR,
+    get_workspace_dir,
     read_workspace_file,
     safe_workspace_path,
 )
@@ -90,15 +90,16 @@ def list_python_files():
     Lists all Python files in the workspace (safely skipping symlink escapes).
     """
     files = []
-    resolved_workspace = WORKSPACE_DIR.resolve()
-    for file in WORKSPACE_DIR.rglob("*.py"):
+    ws = get_workspace_dir()
+    resolved_workspace = ws.resolve()
+    for file in ws.rglob("*.py"):
         if file.is_symlink():
             try:
                 if not file.resolve().is_relative_to(resolved_workspace):
                     continue
             except Exception:
                 continue
-        relative = file.relative_to(WORKSPACE_DIR)
+        relative = file.relative_to(ws)
         if any(part.startswith(".") or part in SKIPPED_DIR_NAMES for part in relative.parts):
             continue
         files.append(str(relative))

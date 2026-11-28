@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 
-from app.tools.workspace_tools import SENSITIVE_FILES, WORKSPACE_DIR
+from app.tools.workspace_tools import SENSITIVE_FILES, get_workspace_dir
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 REPORTS_DIR = PROJECT_ROOT / "reports"
@@ -32,8 +32,9 @@ def _resolve_data_path(filename: str) -> Optional[Path]:
     if ".." in normalized_str.split("/"):
         return None
 
-    resolved_workspace = WORKSPACE_DIR.resolve()
-    target = (WORKSPACE_DIR / normalized_str).resolve()
+    ws = get_workspace_dir()
+    resolved_workspace = ws.resolve()
+    target = (ws / normalized_str).resolve()
     if (
         target.is_relative_to(resolved_workspace)
         and target.exists()
