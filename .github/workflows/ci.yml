@@ -2,9 +2,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ "main", "feature/hardening" ]
+    branches: [ "main", "feature/hardening", "fix/*" ]
   pull_request:
-    branches: [ "main", "feature/hardening" ]
+    branches: [ "main", "feature/hardening", "fix/*" ]
 
 jobs:
   lint-and-test:

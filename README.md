@@ -193,6 +193,9 @@ docker compose up --build -d
 ```
 Docker Compose configures volume mounts for `workspace/`, `data/`, `knowledge_base/`, and `reports/` to preserve data across container restarts.
 
+> [!NOTE]
+> The Dockerfile sets `ENV=production` by default. In production mode, strong API keys (minimum 24 characters, non-placeholder) are strictly required, and offline test doubles (`GEMINI_FAKE=1`) are refused. When running smoke tests or local containers with test keys/fake LLMs, explicitly pass `-e ENV=development` (e.g. `docker run -e ENV=development ...`).
+
 ### 3. Container Smoke Test
 
 ```bash
